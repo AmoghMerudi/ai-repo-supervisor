@@ -22,5 +22,6 @@ jobs:
       - name: Run Supervisor
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BACKEND_URL: http://your-backend-url/analyze-pr
+          BACKEND_URL: https://ai-repo-supervisor-git-main-amoghmerudis-projects.vercel.app/api/analyze-pr
+          BACKEND_SECRETS: ${{ secrets.BACKEND_SECRETS }}
         run: node backend/src/index.js
