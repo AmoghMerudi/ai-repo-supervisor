@@ -23,4 +23,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BACKEND_URL: http://your-backend-url/analyze-pr
-        run: node dist/index.js
+        run: node backend/index.ts
