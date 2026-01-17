@@ -3,6 +3,7 @@ const { execSync } = require("child_process");
 
 const token = process.env.GITHUB_TOKEN;
 const backendUrl = process.env.BACKEND_URL;
+const backendSecret = process.env.BACKEND_SECRET || process.env.BACKEND_SECRETS;
 
 if (!token) {
   console.error("GITHUB_TOKEN is not set");
@@ -52,9 +53,12 @@ async function run() {
     process.exit(1);
   }
 
+  const headers = { "Content-Type": "application/json" };
+  if (backendSecret) headers.Authorization = `Bearer ${backendSecret}`;
+
   const res = await fetch(backendUrl, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify(payload),
   });
 

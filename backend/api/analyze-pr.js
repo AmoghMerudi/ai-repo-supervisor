@@ -4,7 +4,7 @@ module.exports = (req, res) => {
 
   // Simple shared-secret auth via Authorization: Bearer <secret>
   const auth = (req.headers.authorization || '');
-  const secret = process.env.BACKEND_SECRET || 'local-secret';
+  const secret = process.env.BACKEND_SECRET || process.env.BACKEND_SECRETS || 'local-secret';
   if (!auth.startsWith('Bearer ') || auth.slice('Bearer '.length).trim() !== secret) {
     return res.status(401).json({ error: 'unauthorized' });
   }
