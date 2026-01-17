@@ -3,7 +3,7 @@ name: AI Repo Supervisor
 on:
   pull_request:
     types: [opened, synchronize]
-  workflow_dispatch: {}    # allow manual runs from Actions UI
+  workflow_dispatch: {}
 
 permissions:
   contents: read
@@ -22,11 +22,14 @@ jobs:
         with:
           node-version: 18
 
-      - name: Install deps
-        run: npm install
+      - name: Install backend deps
+        run: |
+          cd backend
+          npm ci
 
       - name: Run Supervisor
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BACKEND_URL: "https://ai-repo-supervisor-zljk.onrender.com/analyze-pr"  # your Render URL
-        run: node backend/src/monitor.js
+          BACKEND_URL: "https://ai-repo-supervisor-zljk.onrender.com/analyze-pr"
+        run: node src/monitor.js
+        working-directory: backend

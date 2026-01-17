@@ -1,10 +1,11 @@
 # dependencies
 node_modules/
+backend/node_modules/
 
-# environment / local files
+# local env / mac
 .env
 npm-debug.log
 .DS_Store
 
-# editor folders
+# editor
 .vscode/
