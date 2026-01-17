@@ -3,8 +3,7 @@ const { execSync } = require("child_process");
 
 const token = process.env.GITHUB_TOKEN;
 const backendUrl = process.env.BACKEND_URL;
-const backendSecret = process.env.BACKEND_SECRETS;
-
+const backendSecret = process.env.BACKEND_SECRETS || process.env.BACKEND_SECRET;
 if (!token) {
   console.error("GITHUB_TOKEN is not set");
   process.exit(1);
