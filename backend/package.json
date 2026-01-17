@@ -2,17 +2,19 @@
   "name": "ai-repo-supervisor-backend",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "main": "src/index.js",
   "engines": {
     "node": ">=18"
   },
   "scripts": {
+    "dev": "node src/index.js",
     "start": "node src/index.js",
-    "mock-server": "node src/https-server.js",
     "test": "echo \"no tests\" && exit 0"
   },
   "dependencies": {
-    "express": "^4.18.2"
+    "express": "^4.19.2",
+    "cors": "^2.8.5"
   },
   "license": "MIT"
 }
