@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 
 import { mockRepos } from "@/app/libs/mockRepos";
+import RecentPullRequestCard from "@/src/components/RecentPullRequestCard";
+import { getHealthLabelFromScore } from "@/src/adapters/prAdapter";
 
 export default function RepoPage() {
   const params = useParams<{ repo?: string | string[] }>();
@@ -38,6 +40,8 @@ export default function RepoPage() {
     );
   }
 
+  const healthLabel = getHealthLabelFromScore(repo.health.baseline_score);
+
   return (
     <main className="relative min-h-screen overflow-hidden bg-neutral-950 px-6 py-10 text-neutral-100 sm:px-10">
       <div className="pointer-events-none absolute inset-0">
@@ -57,7 +61,7 @@ export default function RepoPage() {
           <div className="mt-3 flex flex-wrap items-center gap-3">
             <h1 className="text-3xl font-bold sm:text-4xl">{repo.name}</h1>
             <span className="rounded-full border border-neutral-700 px-3 py-1 text-xs text-neutral-300">
-              Health score {repo.healthScore}
+              Health score {repo.health.baseline_score.toFixed(1)}
             </span>
           </div>
           <p className="mt-2 text-sm text-neutral-300 sm:text-base">
@@ -71,9 +75,11 @@ export default function RepoPage() {
               Current health
             </p>
             <div className="mt-4 flex items-baseline gap-3">
-              <span className="text-4xl font-bold">{repo.healthScore}</span>
+              <span className="text-4xl font-bold">
+                {repo.health.baseline_score.toFixed(1)}
+              </span>
               <span className="rounded-full border border-neutral-700 px-3 py-1 text-xs font-semibold text-neutral-200">
-                {repo.status}
+                {healthLabel}
               </span>
             </div>
             <p className="mt-3 text-sm text-neutral-300">{repo.reason}</p>
@@ -99,13 +105,11 @@ export default function RepoPage() {
             </div>
             <div className="mt-4 space-y-3">
               {repo.prs.map((pr) => (
-                <div
+                <RecentPullRequestCard
                   key={pr.title}
-                  className="rounded-xl border border-neutral-800 bg-neutral-950/60 p-4"
-                >
-                  <p className="font-medium text-neutral-100">{pr.title}</p>
-                  <p className="mt-1 text-sm text-neutral-400">{pr.summary}</p>
-                </div>
+                  title={pr.title}
+                  analysis={pr.analysis}
+                />
               ))}
             </div>
           </div>

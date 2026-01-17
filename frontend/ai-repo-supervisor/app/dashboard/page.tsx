@@ -1,9 +1,17 @@
 import Link from "next/link";
 
 import { mockRepos } from "@/app/libs/mockRepos";
+import { getHealthLabelFromScore } from "@/src/adapters/prAdapter";
 
-const getStatusClass = (status: string) =>
-  status === "At Risk" ? "text-yellow-400" : "text-emerald-400";
+const getStatusClass = (status: string) => {
+  if (status === "Critical") {
+    return "text-rose-400";
+  }
+  if (status === "At Risk") {
+    return "text-yellow-400";
+  }
+  return "text-emerald-400";
+};
 
 export default function Dashboard() {
   return (
@@ -26,7 +34,10 @@ export default function Dashboard() {
         </header>
 
         <section className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {mockRepos.map((repo) => (
+          {mockRepos.map((repo) => {
+            const status = getHealthLabelFromScore(repo.health.baseline_score);
+
+            return (
             <Link
               key={repo.name}
               href={`/dashboard/${repo.name}`}
@@ -37,16 +48,16 @@ export default function Dashboard() {
                   {repo.name}
                 </h2>
                 <span className="rounded-full border border-neutral-700 px-2 py-0.5 text-xs text-neutral-400">
-                  {repo.healthScore}
+                  {repo.health.baseline_score.toFixed(1)}
                 </span>
               </div>
 
               <p
                 className={`mt-3 text-sm font-semibold ${getStatusClass(
-                  repo.status
+                  status
                 )}`}
               >
-                {repo.status}
+                {status}
               </p>
 
               <p className="mt-2 text-sm text-neutral-400">{repo.reason}</p>
@@ -55,7 +66,8 @@ export default function Dashboard() {
                 View details →
               </p>
             </Link>
-          ))}
+            );
+          })}
         </section>
       </div>
     </main>
