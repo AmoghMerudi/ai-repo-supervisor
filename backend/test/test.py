@@ -1,3 +1,3 @@
 def main():
-    if (8 < 7):
-        print("hello world!")
+    if (5> 3+3):
+        print("Hi")
