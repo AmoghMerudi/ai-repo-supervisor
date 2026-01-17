@@ -166,6 +166,9 @@ async function run() {
 
     const {
       summary,
+      structural_signals = [],
+      semantic_insights = [],
+      synthesis,
       risks = [],
       suggestions = [],
       health_delta = 0,
@@ -173,10 +176,15 @@ async function run() {
       semantic_score,
     } = analysis;
 
-    const riskExplanation =
-      risks.length > 0
-        ? risks.map(r => `- ${r}`).join('\n')
-        : '- No significant semantic risks detected.';
+    const structuralList =
+      structural_signals.length > 0
+        ? structural_signals.map(s => `- ${s}`).join('\n')
+        : '- No structural signals detected.';
+
+    const semanticList =
+      semantic_insights.length > 0
+        ? semantic_insights.map(s => `- ${s}`).join('\n')
+        : '- No semantic insights detected.';
 
     const suggestionList =
       suggestions.length > 0
@@ -201,8 +209,14 @@ async function run() {
 ### What changed
 ${summary}
 
+### Structural signals (size, surface area)
+${structuralList}
+
+### Semantic insights (behavioral intent)
+${semanticList}
+
 ### Why this matters
-${riskExplanation}
+${synthesis || 'No synthesized narrative available.'}
 
 ### Risk signals
 ${baselineLine}

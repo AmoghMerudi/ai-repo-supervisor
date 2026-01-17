@@ -46,6 +46,13 @@ def analyze_pr(payload: PRRequest):
             or "This pull request introduces focused, high-impact changes."
         )
 
+        result.setdefault("structural_signals", [])
+        result.setdefault("semantic_insights", [])
+        result.setdefault(
+            "synthesis",
+            "This change alters core behavior; review the critical paths carefully.",
+        )
+
         if not result.get("risks"):
             result["risks"] = [
                 "No major risks detected, but changes affect core logic."
