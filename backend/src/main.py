@@ -1,11 +1,27 @@
 import sqlite3
+import json
+import os
 from fastapi import FastAPI
 from pydantic import BaseModel
 from datetime import datetime
+from openai import OpenAI
+from dotenv import load_dotenv
+
+# Load .env automatically
+load_dotenv()
 
 app = FastAPI()
 
-# ---- Database setup ----
+# -----------------------------------
+# Config
+# -----------------------------------
+USE_AI = os.getenv("USE_AI", "1") == "1"
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "google/gemini-3-flash-preview")
+
+# -----------------------------------
+# Database setup
+# -----------------------------------
 conn = sqlite3.connect("health.db", check_same_thread=False)
 conn.execute("""
 CREATE TABLE IF NOT EXISTS repo_health (
@@ -17,7 +33,9 @@ CREATE TABLE IF NOT EXISTS repo_health (
 """)
 conn.commit()
 
-# ---- Request model ----
+# -----------------------------------
+# Request model
+# -----------------------------------
 class PRRequest(BaseModel):
     repo: str
     pr_number: int
@@ -28,12 +46,82 @@ class PRRequest(BaseModel):
     diff: str
     lint_passed: bool
 
-# ---- API Endpoints ----
+# -----------------------------------
+# AI helper (OpenRouter)
+# -----------------------------------
+def run_ai_analysis(payload: PRRequest):
+    if not OPENROUTER_API_KEY:
+        raise RuntimeError("OPENROUTER_API_KEY not set")
 
-# Public analyze endpoint (NO authentication for hackathon/demo)
+    client = OpenAI(
+        api_key=OPENROUTER_API_KEY,
+        base_url="https://openrouter.ai/api/v1",
+    )
+
+    prompt = f"""
+You are a senior repository supervisor.
+
+Return ONLY valid JSON in this format:
+{{
+  "summary": string,
+  "risks": [string],
+  "suggestions": [string],
+  "health_delta": number
+}}
+
+PR DETAILS:
+Repo: {payload.repo}
+PR Number: {payload.pr_number}
+Author: {payload.author}
+Additions: {payload.additions}
+Deletions: {payload.deletions}
+Changed files: {payload.changed_files}
+Lint passed: {payload.lint_passed}
+
+Diff:
+{payload.diff}
+"""
+
+    response = client.chat.completions.create(
+        model=OPENROUTER_MODEL,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.2,
+    )
+
+    return response.choices[0].message.content
+
+# -----------------------------------
+# API Endpoints
+# -----------------------------------
 @app.post("/analyze-pr")
 def analyze_pr(payload: PRRequest):
-    # Basic deterministic "analysis" for demo purposes
+    # -----------------------------------
+    # AI-FIRST (with fallback)
+    # -----------------------------------
+    if USE_AI:
+        try:
+            ai_result = run_ai_analysis(payload)
+            parsed = json.loads(ai_result)
+
+            # Save basic health metric
+            conn.execute(
+                "INSERT INTO repo_health (repo, timestamp, score, reason) VALUES (?, ?, ?, ?)",
+                (
+                    payload.repo,
+                    datetime.utcnow().isoformat(),
+                    parsed.get("health_delta", 0),
+                    ",".join(parsed.get("risks", [])),
+                ),
+            )
+            conn.commit()
+
+            return parsed
+        except Exception as e:
+            print("⚠️ AI failed, falling back to manual logic:", e)
+
+    # -----------------------------------
+    # FALLBACK: deterministic logic
+    # -----------------------------------
     risks = []
     if not payload.lint_passed:
         risks.append("Lint failures detected")
@@ -48,25 +136,29 @@ def analyze_pr(payload: PRRequest):
     if not risks:
         suggestions.append("Add unit tests for changed code")
 
-    summary = f"Mock analysis for {payload.repo} PR #{payload.pr_number} — {'issues found' if risks else 'low risk'}"
+    summary = f"Fallback analysis for {payload.repo} PR #{payload.pr_number}"
 
-    # Optional: record a simple health metric to sqlite
+    score = -5 if risks else 0
+
     try:
-        score = 0 if risks else 10
         conn.execute(
             "INSERT INTO repo_health (repo, timestamp, score, reason) VALUES (?, ?, ?, ?)",
-            (payload.repo, datetime.utcnow().isoformat(), score, ",".join(risks))
+            (
+                payload.repo,
+                datetime.utcnow().isoformat(),
+                score,
+                ",".join(risks),
+            ),
         )
         conn.commit()
     except Exception:
-        # ignore DB errors in demo mode
         pass
 
     return {
         "summary": summary,
         "risks": risks,
         "suggestions": suggestions,
-        "health_delta": -5 if risks else 0
+        "health_delta": score,
     }
 
 @app.get("/health")
@@ -75,6 +167,12 @@ def health():
 
 @app.get("/health-history")
 def health_history(repo: str):
-    cur = conn.execute("SELECT timestamp, score, reason FROM repo_health WHERE repo = ? ORDER BY timestamp DESC LIMIT 20", (repo,))
-    rows = [{"timestamp": r[0], "score": r[1], "reason": r[2]} for r in cur.fetchall()]
+    cur = conn.execute(
+        "SELECT timestamp, score, reason FROM repo_health WHERE repo = ? ORDER BY timestamp DESC LIMIT 20",
+        (repo,),
+    )
+    rows = [
+        {"timestamp": r[0], "score": r[1], "reason": r[2]}
+        for r in cur.fetchall()
+    ]
     return {"repo": repo, "history": rows}
