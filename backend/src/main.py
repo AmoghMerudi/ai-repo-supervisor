@@ -1,7 +1,7 @@
+import sqlite3
 from fastapi import FastAPI
 from pydantic import BaseModel
 from datetime import datetime
-import sqlite3
 
 app = FastAPI()
 
@@ -29,58 +29,52 @@ class PRRequest(BaseModel):
     lint_passed: bool
 
 # ---- API Endpoints ----
+
+# Public analyze endpoint (NO authentication for hackathon/demo)
 @app.post("/analyze-pr")
-def analyze_pr(pr: PRRequest):
+def analyze_pr(payload: PRRequest):
+    # Basic deterministic "analysis" for demo purposes
     risks = []
+    if not payload.lint_passed:
+        risks.append("Lint failures detected")
+    if len(payload.diff or "") > 5000:
+        risks.append("Very large diff")
+    if (payload.additions - payload.deletions) > 500:
+        risks.append("Many additions")
+
     suggestions = []
-
-    pr_size = pr.additions + pr.deletions
-    risk_score = 0
-
-    if pr_size > 500:
-        risks.append("Large PR size")
-        suggestions.append("Consider splitting this PR")
-        risk_score += 3
-
-    if pr.changed_files > 10:
-        risks.append("Touches many files")
-        risk_score += 2
-
-    if not pr.lint_passed:
-        risks.append("Lint checks failed")
+    if not payload.lint_passed:
         suggestions.append("Fix lint issues")
-        risk_score += 2
+    if not risks:
+        suggestions.append("Add unit tests for changed code")
 
-    health_delta = -risk_score
+    summary = f"Mock analysis for {payload.repo} PR #{payload.pr_number} — {'issues found' if risks else 'low risk'}"
 
-    conn.execute(
-        "INSERT INTO repo_health VALUES (?, ?, ?, ?)",
-        (
-            pr.repo,
-            datetime.utcnow().isoformat(),
-            health_delta,
-            ",".join(risks)
+    # Optional: record a simple health metric to sqlite
+    try:
+        score = 0 if risks else 10
+        conn.execute(
+            "INSERT INTO repo_health (repo, timestamp, score, reason) VALUES (?, ?, ?, ?)",
+            (payload.repo, datetime.utcnow().isoformat(), score, ",".join(risks))
         )
-    )
-    conn.commit()
-
-    summary = (
-        f"This PR changes {pr.changed_files} files "
-        f"with {pr.additions} additions and {pr.deletions} deletions."
-    )
+        conn.commit()
+    except Exception:
+        # ignore DB errors in demo mode
+        pass
 
     return {
         "summary": summary,
         "risks": risks,
         "suggestions": suggestions,
-        "health_delta": health_delta
+        "health_delta": -5 if risks else 0
     }
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
 
 @app.get("/health-history")
 def health_history(repo: str):
-    rows = conn.execute(
-        "SELECT timestamp, score FROM repo_health WHERE repo = ?",
-        (repo,)
-    ).fetchall()
-
-    return [{"timestamp": r[0], "score": r[1]} for r in rows]
+    cur = conn.execute("SELECT timestamp, score, reason FROM repo_health WHERE repo = ? ORDER BY timestamp DESC LIMIT 20", (repo,))
+    rows = [{"timestamp": r[0], "score": r[1], "reason": r[2]} for r in cur.fetchall()]
+    return {"repo": repo, "history": rows}
