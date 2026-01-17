@@ -6,8 +6,7 @@ const github = require('@actions/github');
 // ---------------------------------------------------------
 // REPLCE THIS with your actual Render/Ngrok URL
 // Example: 'https://my-backend.onrender.com/analyze-pr'
-const BACKEND_URL = 'https://YOUR-APP-URL.com/analyze-pr'; 
-
+const BACKEND_URL = 'https://ai-repo-supervisor.onrender.com/analyze-pr';
 /**
  * A simple local linter to determine if "lint_passed" is true or false.
  * For the hackathon, we fail lint if we see 'console.log' or 'FIXME'.
