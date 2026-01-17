@@ -1,7 +1,10 @@
 import sqlite3
+from datetime import datetime
+
 from fastapi import FastAPI
 from pydantic import BaseModel
-from datetime import datetime
+
+from src.ai.analyze_pull_request import analyze_pull_request
 
 app = FastAPI()
 
@@ -33,41 +36,26 @@ class PRRequest(BaseModel):
 # Public analyze endpoint (NO authentication for hackathon/demo)
 @app.post("/analyze-pr")
 def analyze_pr(payload: PRRequest):
-    # Basic deterministic "analysis" for demo purposes
-    risks = []
-    if not payload.lint_passed:
-        risks.append("Lint failures detected")
-    if len(payload.diff or "") > 5000:
-        risks.append("Very large diff")
-    if (payload.additions - payload.deletions) > 500:
-        risks.append("Many additions")
-
-    suggestions = []
-    if not payload.lint_passed:
-        suggestions.append("Fix lint issues")
-    if not risks:
-        suggestions.append("Add unit tests for changed code")
-
-    summary = f"Mock analysis for {payload.repo} PR #{payload.pr_number} — {'issues found' if risks else 'low risk'}"
+    result = analyze_pull_request(payload.dict())
 
     # Optional: record a simple health metric to sqlite
     try:
-        score = 0 if risks else 10
+        score = 0 if result.get("risks") else 10
         conn.execute(
             "INSERT INTO repo_health (repo, timestamp, score, reason) VALUES (?, ?, ?, ?)",
-            (payload.repo, datetime.utcnow().isoformat(), score, ",".join(risks))
+            (
+                payload.repo,
+                datetime.utcnow().isoformat(),
+                score,
+                ",".join(result.get("risks", [])),
+            ),
         )
         conn.commit()
     except Exception:
         # ignore DB errors in demo mode
         pass
 
-    return {
-        "summary": summary,
-        "risks": risks,
-        "suggestions": suggestions,
-        "health_delta": -5 if risks else 0
-    }
+    return result
 
 @app.get("/health")
 def health():
