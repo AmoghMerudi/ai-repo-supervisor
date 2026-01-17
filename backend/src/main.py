@@ -58,7 +58,7 @@ def run_ai_analysis(payload: PRRequest):
         base_url="https://openrouter.ai/api/v1",
     )
 
-prompt = f"""
+    prompt = f"""
 You are a senior GitHub repository reviewer.
 
 Analyze the pull request and return ONLY valid JSON.
