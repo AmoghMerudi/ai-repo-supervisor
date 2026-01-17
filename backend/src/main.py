@@ -1,3 +1,4 @@
+import os
 import sqlite3
 from datetime import datetime
 
@@ -5,6 +6,8 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 
 from src.ai.analyze_pull_request import analyze_pull_request
+
+DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
 
 app = FastAPI()
 
@@ -37,6 +40,21 @@ class PRRequest(BaseModel):
 @app.post("/analyze-pr")
 def analyze_pr(payload: PRRequest):
     result = analyze_pull_request(payload.dict())
+    if DEMO_MODE:
+        result["summary"] = (
+            result["summary"]
+            or "This pull request introduces focused, high-impact changes."
+        )
+
+        if not result.get("risks"):
+            result["risks"] = [
+                "No major risks detected, but changes affect core logic."
+            ]
+
+        if not result.get("suggestions"):
+            result["suggestions"] = [
+                "Consider a quick manual review of the modified logic."
+            ]
 
     # Optional: record a simple health metric to sqlite
     try:

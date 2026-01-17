@@ -161,38 +161,59 @@ async function run() {
     }
 
     // ---------------------------------------------------------
-    // 5. BUILD PR COMMENT
+    // 5. BUILD PR COMMENT (FINAL)
     // ---------------------------------------------------------
-    const riskList =
-      analysis.risks.length > 0
-        ? analysis.risks.map(r => `- 🔴 ${r}`).join('\n')
-        : '- ✅ No significant risks detected.';
+
+    const {
+      summary,
+      risks = [],
+      suggestions = [],
+      health_delta = 0,
+      baseline_score,
+      semantic_score,
+    } = analysis;
+
+    const riskExplanation =
+      risks.length > 0
+        ? risks.map(r => `- ${r}`).join('\n')
+        : '- No significant semantic risks detected.';
 
     const suggestionList =
-      analysis.suggestions.length > 0
-        ? analysis.suggestions.map(s => `- 💡 ${s}`).join('\n')
-        : '- No immediate suggestions.';
+      suggestions.length > 0
+        ? suggestions.map(s => `- ${s}`).join('\n')
+        : '- No immediate actions suggested.';
+
+    const baselineLine =
+      typeof baseline_score === 'number'
+        ? `- Baseline risk score: ${baseline_score}`
+        : '- Baseline risk score: unavailable';
+
+    const semanticLine =
+      typeof semantic_score === 'number'
+        ? `- Semantic risk score: ${semantic_score}`
+        : '- Semantic risk score: unavailable';
+
+    const healthImpact = health_delta > 0 ? `+${health_delta}` : `${health_delta}`;
 
     const commentBody = `
-## 🤖 Repo Supervisor Report
+## 🤖 Repo Supervisor
 
-${analysis.summary}
+### What changed
+${summary}
 
-### 🛡️ Risk Assessment
-${riskList}
+### Why this matters
+${riskExplanation}
 
-### 📝 Suggestions
+### Risk signals
+${baselineLine}
+${semanticLine}
+
+### Suggested actions (human decides)
 ${suggestionList}
 
----
-**Health Impact:** ${analysis.health_score_impact > 0 ? '+' : ''}${
-      analysis.health_score_impact
-    } pts
+📊 **Repo health impact:** ${healthImpact}
 `;
 
-    // ---------------------------------------------------------
-    // 6. POST COMMENT TO PR
-    // ---------------------------------------------------------
     await octokit.rest.issues.createComment({
       owner,
       repo,
