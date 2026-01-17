@@ -1,21 +1,41 @@
-import sqlite3
-from fastapi import FastAPI
-from pydantic import BaseModel
+import os
 from datetime import datetime
+from typing import List, Dict, Any, Optional
+
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+
+# Use pymongo to talk to MongoDB Atlas
+import pymongo
+from pymongo.errors import PyMongoError
 
 app = FastAPI()
 
-# ---- Database setup ----
-conn = sqlite3.connect("health.db", check_same_thread=False)
-conn.execute("""
-CREATE TABLE IF NOT EXISTS repo_health (
-    repo TEXT,
-    timestamp TEXT,
-    score INTEGER,
-    reason TEXT
-)
-""")
-conn.commit()
+# ---- MongoDB setup ----
+MONGODB_URI = os.environ.get("MONGODB_URI", "").strip()
+MONGODB_DB = os.environ.get("MONGODB_DB", "ai_repo_supervisor")
+
+mongo_client: Optional[pymongo.MongoClient] = None
+repo_collection = None
+
+# In-memory fallback if Mongo is not configured or unavailable (keeps behavior in demos)
+_in_memory_history: List[Dict[str, Any]] = []
+
+if MONGODB_URI:
+    try:
+        mongo_client = pymongo.MongoClient(MONGODB_URI, serverSelectionTimeoutMS=5000)
+        db = mongo_client[MONGODB_DB]
+        repo_collection = db["repo_health"]
+        # index to speed up history queries
+        repo_collection.create_index([("repo", pymongo.ASCENDING), ("timestamp", pymongo.DESCENDING)])
+        print("Connected to MongoDB:", MONGODB_DB)
+    except PyMongoError as e:
+        # Log and fall back to in-memory storage
+        print("Warning: could not connect to MongoDB, falling back to in-memory store:", str(e))
+        mongo_client = None
+        repo_collection = None
+else:
+    print("MONGODB_URI not set — using in-memory history (demo mode)")
 
 # ---- Request model ----
 class PRRequest(BaseModel):
@@ -30,11 +50,10 @@ class PRRequest(BaseModel):
 
 # ---- API Endpoints ----
 
-# Public analyze endpoint (NO authentication for hackathon/demo)
 @app.post("/analyze-pr")
 def analyze_pr(payload: PRRequest):
     # Basic deterministic "analysis" for demo purposes
-    risks = []
+    risks: List[str] = []
     if not payload.lint_passed:
         risks.append("Lint failures detected")
     if len(payload.diff or "") > 5000:
@@ -42,7 +61,7 @@ def analyze_pr(payload: PRRequest):
     if (payload.additions - payload.deletions) > 500:
         risks.append("Many additions")
 
-    suggestions = []
+    suggestions: List[str] = []
     if not payload.lint_passed:
         suggestions.append("Fix lint issues")
     if not risks:
@@ -50,17 +69,31 @@ def analyze_pr(payload: PRRequest):
 
     summary = f"Mock analysis for {payload.repo} PR #{payload.pr_number} — {'issues found' if risks else 'low risk'}"
 
-    # Optional: record a simple health metric to sqlite
-    try:
-        score = 0 if risks else 10
-        conn.execute(
-            "INSERT INTO repo_health (repo, timestamp, score, reason) VALUES (?, ?, ?, ?)",
-            (payload.repo, datetime.utcnow().isoformat(), score, ",".join(risks))
-        )
-        conn.commit()
-    except Exception:
-        # ignore DB errors in demo mode
-        pass
+    # Store history in MongoDB (or fallback) with a simple score and reason
+    score = 0 if risks else 10
+    reason = ",".join(risks)
+
+    doc = {
+        "repo": payload.repo,
+        "timestamp": datetime.utcnow().isoformat(),
+        "score": score,
+        "reason": reason,
+        "pr_number": payload.pr_number,
+        "author": payload.author,
+    }
+
+    if repo_collection:
+        try:
+            repo_collection.insert_one(doc)
+        except PyMongoError as e:
+            # don't crash analysis on DB write failure
+            print("Warning: failed to write to MongoDB:", str(e))
+    else:
+        # in-memory fallback
+        _in_memory_history.append(doc)
+        # keep list bounded for memory safety in long-running demos
+        if len(_in_memory_history) > 1000:
+            _in_memory_history.pop(0)
 
     return {
         "summary": summary,
@@ -71,10 +104,19 @@ def analyze_pr(payload: PRRequest):
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {"status": "ok", "mongo": bool(repo_collection)}
 
 @app.get("/health-history")
 def health_history(repo: str):
-    cur = conn.execute("SELECT timestamp, score, reason FROM repo_health WHERE repo = ? ORDER BY timestamp DESC LIMIT 20", (repo,))
-    rows = [{"timestamp": r[0], "score": r[1], "reason": r[2]} for r in cur.fetchall()]
-    return {"repo": repo, "history": rows}
+    """
+    Returns the most recent 20 health records for the given repo.
+    """
+    try:
+        if repo_collection:
+            cursor = repo_collection.find({"repo": repo}).sort("timestamp", pymongo.DESCENDING).limit(20)
+            rows = [{"timestamp": r.get("timestamp"), "score": r.get("score"), "reason": r.get("reason"), "pr_number": r.get("pr_number")} for r in cursor]
+        else:
+            rows = [r for r in reversed(_in_memory_history) if r.get("repo") == repo][:20]
+        return {"repo": repo, "history": rows}
+    except PyMongoError as e:
+        raise HTTPException(status_code=500, detail="DB error")
