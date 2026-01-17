@@ -28,8 +28,21 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run AI test
+        id: ai_test
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
           cd backend/src
-          python test_ai.py
+          python test_ai.py > ai_output.json
+          echo "::set-output name=json::$(cat ai_output.json | jq -c .)"
+
+      - name: Post AI result as PR comment
+        uses: peter-evans/create-or-update-comment@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ## 🤖 AI Test Result
+            ```json
+            ${{ steps.ai_test.outputs.json }}
+            ```

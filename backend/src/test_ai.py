@@ -7,7 +7,7 @@ payload = PRRequest(
     author="tester",
     additions=5,
     deletions=1,
-    changed_files=1,
+    changed_files=2,
     diff="diff test",
     lint_passed=True
 )
