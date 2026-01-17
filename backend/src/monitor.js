@@ -1,12 +1,8 @@
 const core = require('@actions/core');
 const github = require('@actions/github');
 
-// ---------------------------------------------------------
-// 1. CONFIGURATION
-// ---------------------------------------------------------
-// REPLCE THIS with your actual Render/Ngrok URL
-// Example: 'https://my-backend.onrender.com/analyze-pr'
-const BACKEND_URL = 'https://ai-repo-supervisor.onrender.com/analyze-pr';
+const BACKEND_URL = process.env.BACKEND_URL || 'https://ai-repo-supervisor-zljk.onrender.com/analyze-pr';
+
 /**
  * A simple local linter to determine if "lint_passed" is true or false.
  * For the hackathon, we fail lint if we see 'console.log' or 'FIXME'.
@@ -24,73 +20,64 @@ function runBasicLint(diffText) {
 
 async function run() {
   try {
-    const token = process.env.GITHUB_TOKEN;
-    const octokit = github.getOctokit(token);
-    const context = github.context;
+    const SIMULATE = process.env.SIMULATE === '1';
+    let owner, repo, prNumber, prData, diffText;
 
-    // ---------------------------------------------------------
-    // 2. GATHER DATA (The "Extract" Phase)
-    // ---------------------------------------------------------
-    if (!context.payload.pull_request) {
-      core.setFailed("No pull request found.");
-      return;
+    if (SIMULATE) {
+      owner = process.env.SIM_OWNER || 'demo-owner';
+      repo = process.env.SIM_REPO || 'demo-repo';
+      prNumber = Number(process.env.SIM_PR_NUMBER || 1);
+      prData = { user: { login: 'local-user' }, additions: 5, deletions: 2, changed_files: 1 };
+      diffText = '--- a/f\n+++ b/f\n@@ -1 +1 @@\n-old\n+new\n';
+      console.log('SIMULATE mode: using sample PR data');
+    } else {
+      const token = process.env.GITHUB_TOKEN;
+      if (!token) {
+        core.setFailed('GITHUB_TOKEN not set in runner.');
+        return;
+      }
+      const octokit = github.getOctokit(token);
+      const context = github.context;
+      if (!context.payload.pull_request) {
+        core.setFailed('No pull request in context.');
+        return;
+      }
+      prNumber = context.payload.pull_request.number;
+      owner = context.repo.owner;
+      repo = context.repo.repo;
+      const { data: fullPr } = await octokit.rest.pulls.get({ owner, repo, pull_number: prNumber });
+      prData = fullPr;
+      const { data: diff } = await octokit.rest.pulls.get({
+        owner, repo, pull_number: prNumber, mediaType: { format: 'diff' }
+      });
+      diffText = diff;
     }
 
-    const prNumber = context.payload.pull_request.number;
-    const owner = context.repo.owner;
-    const repo = context.repo.repo;
-    
-    // We need to fetch the FULL PR object to get accurate line counts (additions/deletions)
-    // The default context.payload sometimes has old cached data.
-    const { data: prData } = await octokit.rest.pulls.get({
-      owner,
-      repo,
-      pull_number: prNumber,
-    });
-
-    // We fetch the raw diff separately to scan the text
-    const { data: diffText } = await octokit.rest.pulls.get({
-      owner,
-      repo,
-      pull_number: prNumber,
-      mediaType: { format: 'diff' }
-    });
-
-    // ---------------------------------------------------------
-    // 3. RUN LOCAL CHECKS
-    // ---------------------------------------------------------
-    const isLintClean = runBasicLint(diffText);
-
-    // ---------------------------------------------------------
-    // 4. PREPARE PAYLOAD (Matching your Python Pydantic Model)
-    // ---------------------------------------------------------
     const payload = {
-      repo: `${owner}/${repo}`,        // Matches Python: repo: str
-      pr_number: prNumber,             // Matches Python: pr_number: int
-      author: prData.user.login,       // Matches Python: author: str
-      additions: prData.additions,     // Matches Python: additions: int
-      deletions: prData.deletions,     // Matches Python: deletions: int
-      changed_files: prData.changed_files, // Matches Python: changed_files: int
-      diff: diffText,                  // Matches Python: diff: str
-      lint_passed: isLintClean         // Matches Python: lint_passed: bool
+      repo: `${owner}/${repo}`,
+      pr_number: prNumber,
+      author: prData.user && prData.user.login,
+      additions: prData.additions || 0,
+      deletions: prData.deletions || 0,
+      changed_files: prData.changed_files || 0,
+      diff: diffText || '',
+      lint_passed: runBasicLint(diffText || '')
     };
 
-    console.log("📤 Sending data to backend:", JSON.stringify(payload, null, 2));
-
-    // ---------------------------------------------------------
-    // 5. CALL THE BACKEND
-    // ---------------------------------------------------------
-    const response = await fetch(BACKEND_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+    // NO Authorization header — public endpoint for hackathon/demo
+    const res = await fetch(BACKEND_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
     });
 
-    if (!response.ok) {
-      throw new Error(`Backend failed with status ${response.status}: ${response.statusText}`);
+    const text = await res.text();
+    if (!res.ok) {
+      core.error(`Backend failed with status ${res.status}: ${text}`);
+      throw new Error(`Backend failed with status ${res.status}`);
     }
 
-    const analysis = await response.json();
+    const analysis = JSON.parse(text);
     console.log("📥 Received analysis:", analysis);
 
     // ---------------------------------------------------------
@@ -129,8 +116,9 @@ ${suggestionList}
       body: commentBody,
     });
 
-  } catch (error) {
-    core.setFailed(error.message);
+  } catch (err) {
+    core.error(err);
+    core.setFailed(err.message);
   }
 }
 
