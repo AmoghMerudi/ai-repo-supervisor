@@ -38,7 +38,7 @@ GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "").strip()
 # -----------------------------------
 # Config
 # -----------------------------------
-USE_AI = os.getenv("USE_AI", "1") == "1"
+USE_AI = os.getenv("USE_AI", "1") == "1
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "google/gemini-3-flash-preview")
 
@@ -373,6 +373,9 @@ def analyze_pr(payload: PRRequest, request: Request = None):
                 "summary": summary,
             }
 
+            # build the comment once (used for posting and for response)
+            comment_body = _format_comment(parsed, doc)
+
             wrote_to_db = False
             # Prefer MongoDB if configured
             if repo_summary is not None and repo_collection is not None:
@@ -390,6 +393,7 @@ def analyze_pr(payload: PRRequest, request: Request = None):
                 except Exception as e:
                     logger.warning("Mongo write failed, falling back to sqlite: %s", e)
                     # continue to sqlite fallback
+
             if not wrote_to_db:
                 # sqlite fallback: store minimal fields (score = health_delta for compatibility)
                 try:
@@ -398,21 +402,19 @@ def analyze_pr(payload: PRRequest, request: Request = None):
                         (payload.repo, datetime.utcnow().isoformat(), health_delta, ",".join(risks_arr)),
                     )
                     conn.commit()
-                    # set overall_health for comment even when sqlite used
                     doc["overall_health"] = INITIAL_REPO_HEALTH + health_delta
                 except Exception:
                     doc["overall_health"] = INITIAL_REPO_HEALTH + health_delta
 
             # Try to post a PR comment (best-effort)
             try:
-                comment_body = _format_comment(parsed, doc)
                 posted = _post_github_comment(payload.repo, payload.pr_number, comment_body)
                 if not posted:
                     logger.info("Did not post comment for %s#%s (posting not configured or failed)", payload.repo, payload.pr_number)
             except Exception as e:
                 logger.exception("Exception while attempting to post GitHub comment: %s", e)
 
-            # Return the parsed analysis (includes pr_score, health_delta, summary, risks)
+            # Return the parsed analysis and the generated comment
             return {
                 "summary": summary,
                 "risks": risks_arr,
@@ -420,6 +422,7 @@ def analyze_pr(payload: PRRequest, request: Request = None):
                 "pr_score": pr_score,
                 "health_delta": health_delta,
                 "reason": reason,
+                "comment": comment_body,
             }
         except Exception as e:
             logger.exception("AI failed, falling back to deterministic logic: %s", e)
@@ -512,6 +515,7 @@ def analyze_pr(payload: PRRequest, request: Request = None):
         "pr_score": pr_score,
         "health_delta": health_delta,
         "reason": ",".join(risks),
+        "comment": comment_body,
     }
 
 

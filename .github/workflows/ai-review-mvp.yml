@@ -32,7 +32,7 @@ jobs:
 
       - name: Call Render AI service (no secret)
         env:
-          RENDER_AI_URL: "https://ai-repo-supervisor-agentic.onrender.com" # <-- replace with your Render URL (no trailing slash recommended)
+          RENDER_AI_URL: "https://ai-repo-supervisor-agentic.onrender.com"
         run: |
           BASE="${RENDER_AI_URL%/}"
           ENDPOINT="$BASE/analyze-pr"
@@ -67,15 +67,35 @@ jobs:
             cat response.json
           fi
 
-      - name: Comment on PR with AI summary (optional)
+      - name: Comment on PR with AI summary (always attempt)
         if: always()
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          SUMMARY=$(jq -r '.summary // "No summary returned."' response.json)
-          PR_SCORE=$(jq -r '.pr_score // "unknown"' response.json)
-          BODY="**AI review (MVP)**\n\nScore: \`${PR_SCORE}\`\n\nSummary:\n\n${SUMMARY}"
-          PR_NUMBER="${{ github.event.pull_request.number }}"
-          curl -sS -H "Authorization: Bearer $GITHUB_TOKEN" -X POST \
-            -d "$(jq -nc --arg body "$BODY" '{body:$body}')" \
-            "https://api.github.com/repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" > /dev/null
+          # prefer server-provided comment field
+          COMMENT=$(jq -r '.comment // empty' response.json || true)
+          if [ -z "$COMMENT" ]; then
+            SUMMARY=$(jq -r '.summary // "No summary returned."' response.json)
+            PR_SCORE=$(jq -r '.pr_score // "unknown"' response.json)
+            COMMENT="**AI review (MVP)**\n\nScore: \`${PR_SCORE}\`\n\nSummary:\n\n${SUMMARY}"
+          fi
+          echo "Posting comment to PR #${{ github.event.pull_request.number }} (comment length=$(echo "$COMMENT" | wc -c))"
+          # POST and show HTTP status / response for debugging
+          set +e
+          HTTP_CODE=$(curl -s -o gh_response.json -w "%{http_code}" -H "Authorization: Bearer $GITHUB_TOKEN" -X POST \
+            -d "$(jq -nc --arg body "$COMMENT" '{body:$body}')" \
+            "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments")
+          CURL_EXIT=$?
+          set -e
+          echo "gh curl exit: $CURL_EXIT http_code: $HTTP_CODE"
+          if [ "$CURL_EXIT" -ne 0 ] || [ -z "$HTTP_CODE" ] || [ "$HTTP_CODE" -ge 400 ]; then
+            echo "Failed to post GitHub comment (HTTP $HTTP_CODE)"
+            if [ -s gh_response.json ]; then
+              echo "GitHub response:"
+              cat gh_response.json
+            fi
+            # still succeed the job (we don't want workflow to block on comment failures)
+          else
+            echo "Comment posted successfully (HTTP $HTTP_CODE)"
+            cat gh_response.json
+          fi
