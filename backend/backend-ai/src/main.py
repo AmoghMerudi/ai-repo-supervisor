@@ -8,6 +8,10 @@ from pydantic import BaseModel
 from datetime import datetime
 from openai import OpenAI
 from dotenv import load_dotenv
+import logging
+import urllib.request
+import urllib.error
+import urllib.parse
 
 # New imports
 from typing import Optional, Dict, Any, List, Any as _Any
@@ -24,10 +28,17 @@ load_dotenv()
 
 app = FastAPI()
 
+# simple logger
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("backend-ai")
+
+# GitHub token (optional). If set, server will post comments on PRs.
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "").strip()
+
 # -----------------------------------
 # Config
 # -----------------------------------
-USE_AI = os.getenv("USE_AI", "1") == "1"
+USE_AI = os.getenv("USE_AI", "1") == "1
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "google/gemini-3-flash-preview")
 
@@ -308,7 +319,17 @@ def _update_repo_summary_mongo(doc: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 # API Endpoints
 # -----------------------------------
 @app.post("/analyze-pr")
-def analyze_pr(payload: PRRequest):
+@app.post("/analyze-pr/")
+def analyze_pr(payload: PRRequest, request: Request = None):
+    # simple request logging for debugging MVP
+    client = None
+    try:
+        client = request.client.host if request and request.client else "unknown"
+    except Exception:
+        client = "unknown"
+    logger.info("Received analyze-pr from %s repo=%s pr=%s additions=%s deletions=%s changed_files=%s",
+                client, payload.repo, payload.pr_number, payload.additions, payload.deletions, payload.changed_files)
+
     # AI path (with fallbacks)
     if USE_AI:
         try:
@@ -367,7 +388,7 @@ def analyze_pr(payload: PRRequest):
                     repo_collection.insert_one(doc)
                     wrote_to_db = True
                 except Exception as e:
-                    print("backend-ai: Warning: Mongo write failed, falling back to sqlite:", e)
+                    logger.warning("Mongo write failed, falling back to sqlite: %s", e)
                     # continue to sqlite fallback
             if not wrote_to_db:
                 # sqlite fallback: store minimal fields (score = health_delta for compatibility)
@@ -377,8 +398,19 @@ def analyze_pr(payload: PRRequest):
                         (payload.repo, datetime.utcnow().isoformat(), health_delta, ",".join(risks_arr)),
                     )
                     conn.commit()
+                    # set overall_health for comment even when sqlite used
+                    doc["overall_health"] = INITIAL_REPO_HEALTH + health_delta
                 except Exception:
-                    pass
+                    doc["overall_health"] = INITIAL_REPO_HEALTH + health_delta
+
+            # Try to post a PR comment (best-effort)
+            try:
+                comment_body = _format_comment(parsed, doc)
+                posted = _post_github_comment(payload.repo, payload.pr_number, comment_body)
+                if not posted:
+                    logger.info("Did not post comment for %s#%s (posting not configured or failed)", payload.repo, payload.pr_number)
+            except Exception as e:
+                logger.exception("Exception while attempting to post GitHub comment: %s", e)
 
             # Return the parsed analysis (includes pr_score, health_delta, summary, risks)
             return {
@@ -390,7 +422,7 @@ def analyze_pr(payload: PRRequest):
                 "reason": reason,
             }
         except Exception as e:
-            print("backend-ai: ⚠️ AI failed, falling back to deterministic logic:", repr(e))
+            logger.exception("AI failed, falling back to deterministic logic: %s", e)
             print(traceback.format_exc())
 
     # Fallback deterministic logic (existing behavior)
@@ -449,7 +481,29 @@ def analyze_pr(payload: PRRequest):
             doc["overall_health"] = overall_health
             repo_collection.insert_one(doc)
         except Exception:
-            pass
+            doc = {
+                "repo": payload.repo,
+                "timestamp": datetime.utcnow().isoformat(),
+                "score": pr_score,
+                "pr_score": pr_score,
+                "reason": ",".join(risks),
+                "risks": ",".join(risks),
+                "pr_number": payload.pr_number,
+                "author": payload.author,
+                "additions": payload.additions,
+                "deletions": payload.deletions,
+                "changed_files": payload.changed_files,
+                "health_delta": health_delta,
+                "summary": summary,
+                "overall_health": INITIAL_REPO_HEALTH + health_delta,
+            }
+
+    # best-effort post comment for fallback analysis
+    try:
+        comment_body = _format_comment({"summary": summary, "risks": risks, "suggestions": suggestions, "pr_score": pr_score, "health_delta": health_delta}, doc)
+        _post_github_comment(payload.repo, payload.pr_number, comment_body)
+    except Exception as e:
+        logger.exception("Exception while attempting to post GitHub comment (fallback): %s", e)
 
     return {
         "summary": summary,
@@ -459,6 +513,101 @@ def analyze_pr(payload: PRRequest):
         "health_delta": health_delta,
         "reason": ",".join(risks),
     }
+
+
+def _format_comment(analysis: Dict[str, Any], doc: Dict[str, Any]) -> str:
+    """
+    Build a markdown comment for the PR from analysis and stored doc.
+    Truncate long sections to avoid exceeding API limits.
+    """
+    def _t(s: str, limit: int = 6000):
+        if s is None:
+            return ""
+        s = str(s)
+        return s if len(s) <= limit else s[:limit] + "\n\n...[truncated]"
+
+    summary = _t(analysis.get("summary", doc.get("summary", "")), 8000)
+    risks = analysis.get("risks", [])
+    if isinstance(risks, list):
+        risks_s = ", ".join(risks)
+    else:
+        risks_s = str(risks or "")
+    suggestions = analysis.get("suggestions", [])
+    if isinstance(suggestions, list):
+        sugg_s = "\n".join(f"- {s}" for s in suggestions[:10])
+    else:
+        sugg_s = str(suggestions or "")
+
+    pr_score = analysis.get("pr_score", doc.get("pr_score"))
+    health_delta = analysis.get("health_delta", doc.get("health_delta"))
+    overall_health = doc.get("overall_health")
+
+    comment = []
+    comment.append("**Automated AI PR Review**")
+    comment.append("")
+    comment.append(f"- **Score:** `{pr_score}`")
+    comment.append(f"- **Health delta:** `{health_delta}`")
+    if overall_health is not None:
+        comment.append(f"- **Post-PR overall health:** `{overall_health}`")
+    comment.append("")
+    comment.append("**Summary:**")
+    comment.append(summary or "_(no summary)_")
+    comment.append("")
+    if risks_s:
+        comment.append("**Risks detected:**")
+        comment.append(risks_s)
+        comment.append("")
+    if sugg_s:
+        comment.append("**Suggestions:**")
+        comment.append(sugg_s)
+        comment.append("")
+    comment.append("_This comment was posted automatically by the AI review service._")
+    return "\n".join(comment)
+
+
+def _post_github_comment(repo: str, pr_number: int, body: str) -> bool:
+    """
+    Post a comment to GitHub Issues API (PRs are issues). Returns True on success.
+    Requires GITHUB_TOKEN env var to be set. Handles and logs errors.
+    """
+    if not GITHUB_TOKEN:
+        logger.info("GITHUB_TOKEN not set; skipping posting comment for %s#%s", repo, pr_number)
+        return False
+
+    # ensure repo is owner/name
+    if "/" not in repo:
+        logger.warning("Invalid repo format for comment: %s", repo)
+        return False
+
+    url = f"https://api.github.com/repos/{repo}/issues/{pr_number}/comments"
+    payload = json.dumps({"body": body}).encode("utf-8")
+    headers = {
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "User-Agent": "ai-repo-supervisor/agent",
+        "Accept": "application/vnd.github.v3+json",
+        "Content-Type": "application/json",
+    }
+    req = urllib.request.Request(url, data=payload, headers=headers, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            status = resp.getcode()
+            resp_body = resp.read().decode("utf-8", errors="ignore")
+            if 200 <= status < 300:
+                logger.info("Posted GitHub comment to %s#%s (status=%s)", repo, pr_number, status)
+                return True
+            else:
+                logger.warning("GitHub comment POST returned %s: %s", status, resp_body)
+                return False
+    except urllib.error.HTTPError as e:
+        try:
+            err_body = e.read().decode("utf-8", errors="ignore")
+        except Exception:
+            err_body = "<no body>"
+        logger.warning("GitHub comment POST failed: %s %s", e.code, err_body)
+        return False
+    except Exception as e:
+        logger.exception("Unexpected error posting GitHub comment: %s", e)
+        return False
 
 
 @app.get("/health")
