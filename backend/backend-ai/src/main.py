@@ -636,7 +636,7 @@ def health_history(repo: str):
                         "summary": r.get("summary"),
                     }
                 )
-            return {"repo": repo, "history": rows}
+            return {"repo": repo, "health": rows}
         except Exception:
             pass
 
@@ -646,4 +646,19 @@ def health_history(repo: str):
         (repo,),
     )
     rows = [{"timestamp": r[0], "score": r[1], "reason": r[2]} for r in cur.fetchall()]
-    return {"repo": repo, "history": rows}
+    return {"repo": repo, "health": rows}
+
+
+@app.on_event("startup")
+def _log_registered_routes():
+    try:
+        routes = sorted({r.path for r in app.routes})
+        logger.info("backend-ai: registered routes: %s", routes)
+    except Exception:
+        logger.exception("backend-ai: failed to list routes")
+
+@app.get("/")
+def root():
+    # quick health + route check for debugging
+    routes = sorted({r.path for r in app.routes})
+    return {"status": "ok", "routes": routes}

@@ -32,8 +32,10 @@ jobs:
 
       - name: Call Render AI service (no secret)
         env:
-          RENDER_AI_URL: "https://ai-repo-supervisor-agentic.onrender.com/"
+          RENDER_AI_URL: "https://ai-repo-supervisor-agentic.onrender.com" # <-- replace with your Render URL (no trailing slash recommended)
         run: |
+          BASE="${RENDER_AI_URL%/}"
+          ENDPOINT="$BASE/analyze-pr"
           PAYLOAD=$(jq -n \
             --arg repo "${{ steps.meta.outputs.repo }}" \
             --argjson pr_number ${{ steps.meta.outputs.pr_number }} \
@@ -43,11 +45,9 @@ jobs:
             --argjson changed_files ${{ steps.meta.outputs.changed_files }} \
             --arg diff "${{ steps.diff.outputs.diff }}" \
             '{repo:$repo,pr_number:$pr_number,author:$author,additions:$additions,deletions:$deletions,changed_files:$changed_files,diff:$diff,lint_passed:false}')
-          echo "Posting to $RENDER_AI_URL/analyze-pr (truncated payload shown)"
-          echo "$PAYLOAD" | jq -c '. | {repo,pr_number,author,additions,deletions,changed_files, diff_len:(.diff|length)}'
-          # Call the service, capture HTTP code and ensure response.json exists
+          echo "Posting to $ENDPOINT (diff_len=$(echo "$PAYLOAD" | jq -r '.diff|length'))"
           set +e
-          HTTP_CODE=$(curl -s -o response.json -w "%{http_code}" -X POST "$RENDER_AI_URL/analyze-pr" \
+          HTTP_CODE=$(curl -s -o response.json -w "%{http_code}" -X POST "$ENDPOINT" \
             -H "Content-Type: application/json" \
             -d "$PAYLOAD")
           CURL_EXIT=$?
