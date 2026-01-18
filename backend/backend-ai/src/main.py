@@ -373,7 +373,7 @@ def analyze_pr(payload: PRRequest, request: Request = None):
                 "summary": summary,
             }
 
-            # build the comment once (used for posting and for response)
+            # Build the comment (always present in response)
             comment_body = _format_comment(parsed, doc)
 
             wrote_to_db = False
@@ -406,7 +406,7 @@ def analyze_pr(payload: PRRequest, request: Request = None):
                 except Exception:
                     doc["overall_health"] = INITIAL_REPO_HEALTH + health_delta
 
-            # Try to post a PR comment (best-effort)
+            # Try to post a PR comment from the server (best-effort)
             try:
                 posted = _post_github_comment(payload.repo, payload.pr_number, comment_body)
                 if not posted:
@@ -501,9 +501,9 @@ def analyze_pr(payload: PRRequest, request: Request = None):
                 "overall_health": INITIAL_REPO_HEALTH + health_delta,
             }
 
-    # best-effort post comment for fallback analysis
+    # Ensure we build a comment for fallback and attempt posting (best-effort)
+    comment_body = _format_comment({"summary": summary, "risks": risks, "suggestions": suggestions, "pr_score": pr_score, "health_delta": health_delta}, doc if "doc" in locals() else {})
     try:
-        comment_body = _format_comment({"summary": summary, "risks": risks, "suggestions": suggestions, "pr_score": pr_score, "health_delta": health_delta}, doc)
         _post_github_comment(payload.repo, payload.pr_number, comment_body)
     except Exception as e:
         logger.exception("Exception while attempting to post GitHub comment (fallback): %s", e)
