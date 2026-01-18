@@ -38,7 +38,7 @@ GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "").strip()
 # -----------------------------------
 # Config
 # -----------------------------------
-USE_AI = os.getenv("USE_AI", "1") == "1
+USE_AI = os.getenv("USE_AI", "1") == "1"
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "google/gemini-3-flash-preview")
 
