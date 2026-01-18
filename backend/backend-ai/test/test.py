@@ -1,3 +1,4 @@
 def main():
     if (5> 3+3):
-        print("Hjifjdsafidsfji")
+        print("")
+        i = 0, 3, 2, 3, 3, 3, 3, 3 ,3 ,3 ,3 ,3 ,3 , 3
