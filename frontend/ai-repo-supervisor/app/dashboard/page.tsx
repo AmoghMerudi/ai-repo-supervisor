@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { getHealthLabelFromScore } from "@/src/adapters/prAdapter";
+import { repoHealthMocks } from "@/src/mocks/repoHealthMocks";
 
 type RepoSummary = {
   repo: string;
@@ -50,6 +51,7 @@ const fetchRepos = async (): Promise<RepoSummary[]> => {
 
 export default async function Dashboard() {
   const repos = await fetchRepos();
+  const resolvedRepos = repos.length > 0 ? repos : repoHealthMocks;
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-neutral-950 px-6 py-10 text-neutral-100 sm:px-10">
@@ -71,13 +73,13 @@ export default async function Dashboard() {
         </header>
 
         <section className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {repos.length === 0 ? (
+          {resolvedRepos.length === 0 ? (
             <div className="rounded-2xl border border-neutral-800 bg-neutral-900/70 p-6 text-sm text-neutral-400">
               No repository data available yet. Run an analysis to populate the
               dashboard.
             </div>
           ) : (
-            repos.map((repo) => {
+            resolvedRepos.map((repo) => {
               const currentHealth =
                 typeof repo.current_health === "number" ? repo.current_health : 0;
               const status = getHealthLabelFromScore(currentHealth);

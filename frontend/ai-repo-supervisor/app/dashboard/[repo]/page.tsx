@@ -1,13 +1,24 @@
 import Link from "next/link";
 
 import RecentPullRequestCard from "@/src/components/RecentPullRequestCard";
+import type { BackendAnalyzeResponse } from "@/src/adapters/prAdapter";
 import { getHealthLabelFromScore } from "@/src/adapters/prAdapter";
+import { repoHealthMocks } from "@/src/mocks/repoHealthMocks";
 
 type RepoSummary = {
   repo: string;
   current_health: number;
   avg_score: number;
   total_prs: number;
+  recent?: RepoRecentEntry[];
+};
+
+type RepoRecentEntry = {
+  pr_number: number;
+  score: number;
+  timestamp: string;
+  author: string;
+  overall_health: number;
 };
 
 type RepoHistoryEntry = {
@@ -80,8 +91,11 @@ export default async function RepoPage({
     fetchRepoSummary(normalizedRepoName),
     fetchRepoHistory(normalizedRepoName),
   ]);
+  const fallbackRepo =
+    repoHealthMocks.find((item) => item.repo === normalizedRepoName) || null;
+  const resolvedRepo = repo ?? fallbackRepo;
 
-  if (!repo) {
+  if (!resolvedRepo) {
     return (
       <main className="relative min-h-screen overflow-hidden bg-neutral-950 px-6 py-10 text-neutral-100 sm:px-10">
         <div className="pointer-events-none absolute inset-0">
@@ -107,10 +121,26 @@ export default async function RepoPage({
   }
 
   const currentHealth =
-    typeof repo.current_health === "number" ? repo.current_health : 0;
+    typeof resolvedRepo.current_health === "number"
+      ? resolvedRepo.current_health
+      : 0;
   const healthLabel = getHealthLabelFromScore(currentHealth);
 
-  const recentPrs = history.map((entry) => {
+  const fallbackHistory: RepoHistoryEntry[] = (resolvedRepo.recent || []).map(
+    (entry) => ({
+      pr_number: entry.pr_number,
+      pr_score: entry.score ?? 0,
+      health_delta: 0,
+      overall_health: entry.overall_health,
+      reason: "",
+      author: entry.author,
+      timestamp: entry.timestamp,
+    })
+  );
+  const historySource: RepoHistoryEntry[] =
+    history.length > 0 ? history : fallbackHistory;
+
+  const recentPrs = historySource.map((entry: RepoHistoryEntry) => {
     const risks = entry.reason ? entry.reason.split(",").filter(Boolean) : [];
 
     return {
@@ -120,10 +150,10 @@ export default async function RepoPage({
         risks,
         suggestions: [],
         health_delta: entry.health_delta,
-        baseline_score:
-          typeof entry.overall_health === "number" ? entry.overall_health : 0,
+      baseline_score:
+        typeof entry.overall_health === "number" ? entry.overall_health : 0,
         semantic_score: null,
-      },
+      } satisfies BackendAnalyzeResponse,
     };
   });
 
@@ -144,7 +174,9 @@ export default async function RepoPage({
             Back to dashboard
           </Link>
           <div className="mt-3 flex flex-wrap items-center gap-3">
-            <h1 className="text-3xl font-bold sm:text-4xl">{repo.repo}</h1>
+            <h1 className="text-3xl font-bold sm:text-4xl">
+              {resolvedRepo.repo}
+            </h1>
             <span className="rounded-full border border-neutral-700 px-3 py-1 text-xs text-neutral-300">
               Health score {currentHealth.toFixed(1)}
             </span>
@@ -168,7 +200,8 @@ export default async function RepoPage({
               </span>
             </div>
             <p className="mt-3 text-sm text-neutral-300">
-              Avg PR score {repo.avg_score.toFixed(1)} · {repo.total_prs} PRs
+              Avg PR score {resolvedRepo.avg_score.toFixed(1)} ·{" "}
+              {resolvedRepo.total_prs} PRs
               tracked
             </p>
 
@@ -179,7 +212,7 @@ export default async function RepoPage({
               </div>
               <div className="mt-3 h-36 rounded-md border border-dashed border-neutral-700 bg-neutral-950/40" />
               <p className="mt-4 text-sm text-neutral-300">
-                Reason for recent health: {history[0]?.reason || "N/A"}
+                Reason for recent health: {historySource[0]?.reason || "N/A"}
               </p>
             </div>
           </div>
@@ -188,7 +221,7 @@ export default async function RepoPage({
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">Recent Pull Requests</h2>
               <span className="text-xs text-neutral-500">
-                {repo.total_prs} total
+                {resolvedRepo.total_prs} total
               </span>
             </div>
             <div className="mt-4 space-y-3">
@@ -197,13 +230,15 @@ export default async function RepoPage({
                   No recent pull requests found yet.
                 </div>
               ) : (
-                recentPrs.map((pr) => (
+                recentPrs.map(
+                  (pr: { title: string; analysis: BackendAnalyzeResponse }) => (
                   <RecentPullRequestCard
                     key={pr.title}
                     title={pr.title}
                     analysis={pr.analysis}
                   />
-                ))
+                  )
+                )
               )}
             </div>
           </div>
