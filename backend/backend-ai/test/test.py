@@ -1,5 +1,7 @@
 def main():
-    int i = 0
-    while (i == 0):
+    i = 543534573
+    while (i == 543534573):
         print("Goodbyeeeeeee")
-        print("No. Wait for me.")
+        print("Nooooooooooooooo. Wait for me.")
+        if 'y'=='z':
+            i = 0
