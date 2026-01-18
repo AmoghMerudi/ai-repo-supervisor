@@ -18,11 +18,6 @@ import sqlite3
 # ------------------------------------------------------------------------------
 # 🚨 SECTION 1: HARDCODED SECRETS & KEYS
 # ------------------------------------------------------------------------------
-"""AWS_ACCESS_KEY_ID = "AKIAIOSFODNN7EXAMPLE"
-AWS_SECRET_ACCESS_KEY = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-STRIPE_SECRET_KEY = "sk_live_4eC39HqLyjWDarjtT1zdp7dc"
-OPENAI_API_KEY = "sk-1234567890abcdef1234567890abcdef"
-DB_CONNECTION_STRING = "postgres://admin:admin123@localhost:5432/prod_db""""
 
 # ------------------------------------------------------------------------------
 # 🚨 SECTION 2: DANGEROUS FUNCTIONS
