@@ -1,321 +1,556 @@
-# ==============================================================================
-# ⚠️ WARNING: DO NOT RUN THIS FILE. IT CONTAINS INTENTIONAL VULNERABILITIES.
-# This file is for testing the AI Repo Supervisor's detection capabilities.
-# ==============================================================================
+# ==========================================================
+# TODO: Refactor this entire architecture before 2021
+# FIXME: Logic breaks when x > 100 but we don't know why
+# AUTHOR: Legacy_Team_2019
+# PURPOSE: Transaction Processing (Deprecated)
+# ==========================================================
 
-# TODO: Refactor this entire file before 2022 (Overdue)
-# FIXME: The server crashes randomly when user input contains emojis
-# AUTHOR: Intern_Dave (dave_dev@gmail.com)
-# PASSWORD: "Password123!" <-- 🚨 Security Risk: Hardcoded credential
-
-import os
 import sys
 import time
-import subprocess
 import random
-import sqlite3
 
-# ------------------------------------------------------------------------------
-# 🚨 SECTION 1: HARDCODED SECRETS & KEYS
-# ------------------------------------------------------------------------------
+# 🚨 GLOBAL STATE (Bad practice: Mutable global state)
+GLOBAL_COUNTER = 0
+USER_CACHE = []
+TEMP_DATA = {}
+DEBUG_MODE = True
+ERROR_FLAG = False
 
-
-def execute_user_command(command):
+def complex_initialization_sequence():
     """
-    Executes whatever the user types directly on the server.
-    🚨 RISK: Remote Code Execution (RCE)
+    Initializes the system by doing absolutely nothing efficiently.
     """
-    print("Executing command: " + command)
-    os.system(command) 
+    global GLOBAL_COUNTER
+    # 🚨 PERFORMANCE: Busy wait loop
+    for i in range(1000):
+        GLOBAL_COUNTER += 1
+    return True
 
-def query_database_unsafe(username):
-    """
-    Queries the database using string concatenation.
-    🚨 RISK: SQL Injection
-    """
-    conn = sqlite3.connect('users.db')
-    cursor = conn.cursor()
-    # Direct injection vulnerability
-    sql = "SELECT * FROM users WHERE name = '" + username + "'"
-    cursor.execute(sql)
-    return cursor.fetchall()
+# ----------------------------------------------------------
+# SPAGHETTI LOGIC SECTION
+# The following functions are copy-pasted 20+ times.
+# This triggers "Code Duplication" and "Cyclomatic Complexity"
+# ----------------------------------------------------------
 
-def infinite_busy_wait():
-    """
-    Burns CPU for no reason.
-    🚨 RISK: Denial of Service / Performance
-    """
-    while True:
-        # Busy wait loop
-        pass
-
-# ------------------------------------------------------------------------------
-# 🚨 SECTION 3: REDUNDANT COPY-PASTE SPAGHETTI CODE
-# The following functions are identical and useless.
-# ------------------------------------------------------------------------------
-
-def redundant_calculation_001(x, y):
-    print("Debugging function 001") # Console log pollution
-    temp = x + y
-    if temp > 100:
-        return temp * 2
+def process_data_chunk_001(val_a, val_b, val_c):
+    global GLOBAL_COUNTER
+    res = 0
+    # 🚨 COMPLEXITY: Deep nesting
+    if val_a is not None:
+        if val_b is not None:
+            if val_c is not None:
+                if val_a > val_b:
+                    if val_b > val_c:
+                        res = val_a + val_b - val_c
+                    else:
+                        res = val_a + val_b + val_c
+                else:
+                    if val_a < val_c:
+                        res = val_c - val_a
+                    else:
+                        res = 0
+            else:
+                return -1
+        else:
+            return -1
     else:
-        return temp / 2
+        return -1
+    
+    print("Debug chunk 001: " + str(res))
+    return res
 
-def redundant_calculation_002(x, y):
-    print("Debugging function 002")
-    temp = x + y
-    if temp > 100:
-        return temp * 2
+def process_data_chunk_002(val_a, val_b, val_c):
+    # FIXME: Duplicate logic
+    global GLOBAL_COUNTER
+    res = 0
+    if val_a is not None:
+        if val_b is not None:
+            if val_c is not None:
+                if val_a > val_b:
+                    if val_b > val_c:
+                        res = val_a + val_b - val_c
+                    else:
+                        res = val_a + val_b + val_c
+                else:
+                    if val_a < val_c:
+                        res = val_c - val_a
+                    else:
+                        res = 0
+            else:
+                return -1
+        else:
+            return -1
     else:
-        return temp / 2
+        return -1
+    print("Debug chunk 002: " + str(res))
+    return res
 
-def redundant_calculation_003(x, y):
-    print("Debugging function 003")
-    temp = x + y
-    if temp > 100:
-        return temp * 2
+def process_data_chunk_003(val_a, val_b, val_c):
+    global GLOBAL_COUNTER
+    res = 0
+    if val_a is not None:
+        if val_b is not None:
+            if val_c is not None:
+                if val_a > val_b:
+                    if val_b > val_c:
+                        res = val_a + val_b - val_c
+                    else:
+                        res = val_a + val_b + val_c
+                else:
+                    if val_a < val_c:
+                        res = val_c - val_a
+                    else:
+                        res = 0
+            else:
+                return -1
+        else:
+            return -1
     else:
-        return temp / 2
+        return -1
+    print("Debug chunk 003: " + str(res))
+    return res
 
-def redundant_calculation_004(x, y):
-    print("Debugging function 004")
-    temp = x + y
-    if temp > 100:
-        return temp * 2
+def process_data_chunk_004(val_a, val_b, val_c):
+    global GLOBAL_COUNTER
+    res = 0
+    if val_a is not None:
+        if val_b is not None:
+            if val_c is not None:
+                if val_a > val_b:
+                    if val_b > val_c:
+                        res = val_a + val_b - val_c
+                    else:
+                        res = val_a + val_b + val_c
+                else:
+                    if val_a < val_c:
+                        res = val_c - val_a
+                    else:
+                        res = 0
+            else:
+                return -1
+        else:
+            return -1
     else:
-        return temp / 2
+        return -1
+    print("Debug chunk 004: " + str(res))
+    return res
 
-def redundant_calculation_005(x, y):
-    print("Debugging function 005")
-    temp = x + y
-    if temp > 100:
-        return temp * 2
+def process_data_chunk_005(val_a, val_b, val_c):
+    global GLOBAL_COUNTER
+    res = 0
+    if val_a is not None:
+        if val_b is not None:
+            if val_c is not None:
+                if val_a > val_b:
+                    if val_b > val_c:
+                        res = val_a + val_b - val_c
+                    else:
+                        res = val_a + val_b + val_c
+                else:
+                    if val_a < val_c:
+                        res = val_c - val_a
+                    else:
+                        res = 0
+            else:
+                return -1
+        else:
+            return -1
     else:
-        return temp / 2
+        return -1
+    print("Debug chunk 005: " + str(res))
+    return res
 
-def redundant_calculation_006(x, y):
-    print("Debugging function 006")
-    temp = x + y
-    if temp > 100:
-        return temp * 2
+def process_data_chunk_006(val_a, val_b, val_c):
+    global GLOBAL_COUNTER
+    res = 0
+    if val_a is not None:
+        if val_b is not None:
+            if val_c is not None:
+                if val_a > val_b:
+                    if val_b > val_c:
+                        res = val_a + val_b - val_c
+                    else:
+                        res = val_a + val_b + val_c
+                else:
+                    if val_a < val_c:
+                        res = val_c - val_a
+                    else:
+                        res = 0
+            else:
+                return -1
+        else:
+            return -1
     else:
-        return temp / 2
+        return -1
+    print("Debug chunk 006: " + str(res))
+    return res
 
-def redundant_calculation_007(x, y):
-    print("Debugging function 007")
-    temp = x + y
-    if temp > 100:
-        return temp * 2
+def process_data_chunk_007(val_a, val_b, val_c):
+    global GLOBAL_COUNTER
+    res = 0
+    if val_a is not None:
+        if val_b is not None:
+            if val_c is not None:
+                if val_a > val_b:
+                    if val_b > val_c:
+                        res = val_a + val_b - val_c
+                    else:
+                        res = val_a + val_b + val_c
+                else:
+                    if val_a < val_c:
+                        res = val_c - val_a
+                    else:
+                        res = 0
+            else:
+                return -1
+        else:
+            return -1
     else:
-        return temp / 2
+        return -1
+    print("Debug chunk 007: " + str(res))
+    return res
 
-def redundant_calculation_008(x, y):
-    print("Debugging function 008")
-    temp = x + y
-    if temp > 100:
-        return temp * 2
+def process_data_chunk_008(val_a, val_b, val_c):
+    global GLOBAL_COUNTER
+    res = 0
+    if val_a is not None:
+        if val_b is not None:
+            if val_c is not None:
+                if val_a > val_b:
+                    if val_b > val_c:
+                        res = val_a + val_b - val_c
+                    else:
+                        res = val_a + val_b + val_c
+                else:
+                    if val_a < val_c:
+                        res = val_c - val_a
+                    else:
+                        res = 0
+            else:
+                return -1
+        else:
+            return -1
     else:
-        return temp / 2
+        return -1
+    print("Debug chunk 008: " + str(res))
+    return res
 
-def redundant_calculation_009(x, y):
-    print("Debugging function 009")
-    temp = x + y
-    if temp > 100:
-        return temp * 2
+def process_data_chunk_009(val_a, val_b, val_c):
+    global GLOBAL_COUNTER
+    res = 0
+    if val_a is not None:
+        if val_b is not None:
+            if val_c is not None:
+                if val_a > val_b:
+                    if val_b > val_c:
+                        res = val_a + val_b - val_c
+                    else:
+                        res = val_a + val_b + val_c
+                else:
+                    if val_a < val_c:
+                        res = val_c - val_a
+                    else:
+                        res = 0
+            else:
+                return -1
+        else:
+            return -1
     else:
-        return temp / 2
+        return -1
+    print("Debug chunk 009: " + str(res))
+    return res
 
-def redundant_calculation_010(x, y):
-    print("Debugging function 010")
-    temp = x + y
-    if temp > 100:
-        return temp * 2
+def process_data_chunk_010(val_a, val_b, val_c):
+    global GLOBAL_COUNTER
+    res = 0
+    if val_a is not None:
+        if val_b is not None:
+            if val_c is not None:
+                if val_a > val_b:
+                    if val_b > val_c:
+                        res = val_a + val_b - val_c
+                    else:
+                        res = val_a + val_b + val_c
+                else:
+                    if val_a < val_c:
+                        res = val_c - val_a
+                    else:
+                        res = 0
+            else:
+                return -1
+        else:
+            return -1
     else:
-        return temp / 2
+        return -1
+    print("Debug chunk 010: " + str(res))
+    return res
 
-# ... [IMAGINE 100 MORE LINES OF THIS] ...
-# To ensure we hit the 500 line count for the heuristic check,
-# I am pasting a dense block of meaningless logic below.
+def process_data_chunk_011(val_a, val_b, val_c):
+    global GLOBAL_COUNTER
+    res = 0
+    if val_a is not None:
+        if val_b is not None:
+            if val_c is not None:
+                if val_a > val_b:
+                    if val_b > val_c:
+                        res = val_a + val_b - val_c
+                    else:
+                        res = val_a + val_b + val_c
+                else:
+                    if val_a < val_c:
+                        res = val_c - val_a
+                    else:
+                        res = 0
+            else:
+                return -1
+        else:
+            return -1
+    else:
+        return -1
+    print("Debug chunk 011: " + str(res))
+    return res
 
-def legacy_processor_alpha(data):
-    if data == None: return 0
-    if data == 0: return 0
-    if data == 1: return 1
-    # Hardcoded logic is bad
-    if data == 2: return 4
-    if data == 3: return 9
-    return data * data
+def process_data_chunk_012(val_a, val_b, val_c):
+    global GLOBAL_COUNTER
+    res = 0
+    if val_a is not None:
+        if val_b is not None:
+            if val_c is not None:
+                if val_a > val_b:
+                    if val_b > val_c:
+                        res = val_a + val_b - val_c
+                    else:
+                        res = val_a + val_b + val_c
+                else:
+                    if val_a < val_c:
+                        res = val_c - val_a
+                    else:
+                        res = 0
+            else:
+                return -1
+        else:
+            return -1
+    else:
+        return -1
+    print("Debug chunk 012: " + str(res))
+    return res
 
-def legacy_processor_beta(data):
-    # FIXME: This is a duplicate of alpha
-    if data == None: return 0
-    if data == 0: return 0
-    if data == 1: return 1
-    if data == 2: return 4
-    if data == 3: return 9
-    return data * data
+def process_data_chunk_013(val_a, val_b, val_c):
+    global GLOBAL_COUNTER
+    res = 0
+    if val_a is not None:
+        if val_b is not None:
+            if val_c is not None:
+                if val_a > val_b:
+                    if val_b > val_c:
+                        res = val_a + val_b - val_c
+                    else:
+                        res = val_a + val_b + val_c
+                else:
+                    if val_a < val_c:
+                        res = val_c - val_a
+                    else:
+                        res = 0
+            else:
+                return -1
+        else:
+            return -1
+    else:
+        return -1
+    print("Debug chunk 013: " + str(res))
+    return res
 
-def legacy_processor_gamma(data):
-    # TODO: Remove this in v2.0
-    if data == None: return 0
-    if data == 0: return 0
-    if data == 1: return 1
-    if data == 2: return 4
-    if data == 3: return 9
-    return data * data
+def process_data_chunk_014(val_a, val_b, val_c):
+    global GLOBAL_COUNTER
+    res = 0
+    if val_a is not None:
+        if val_b is not None:
+            if val_c is not None:
+                if val_a > val_b:
+                    if val_b > val_c:
+                        res = val_a + val_b - val_c
+                    else:
+                        res = val_a + val_b + val_c
+                else:
+                    if val_a < val_c:
+                        res = val_c - val_a
+                    else:
+                        res = 0
+            else:
+                return -1
+        else:
+            return -1
+    else:
+        return -1
+    print("Debug chunk 014: " + str(res))
+    return res
 
-class UselessClassManager:
+def process_data_chunk_015(val_a, val_b, val_c):
+    global GLOBAL_COUNTER
+    res = 0
+    if val_a is not None:
+        if val_b is not None:
+            if val_c is not None:
+                if val_a > val_b:
+                    if val_b > val_c:
+                        res = val_a + val_b - val_c
+                    else:
+                        res = val_a + val_b + val_c
+                else:
+                    if val_a < val_c:
+                        res = val_c - val_a
+                    else:
+                        res = 0
+            else:
+                return -1
+        else:
+            return -1
+    else:
+        return -1
+    print("Debug chunk 015: " + str(res))
+    return res
+
+# ----------------------------------------------------------
+# CLASS STRUCTURE
+# This class is entirely unnecessary and stores state poorly
+# ----------------------------------------------------------
+
+class DataManagerV1:
     def __init__(self):
         self.data = []
-    
-    def add_data(self, item):
-        self.data.append(item)
-        print("Item added") # Side effect in logic
-    
-    def get_data(self):
-        return self.data
-    
-    def clear_data(self):
+        self.is_valid = False
+
+    def check_validity(self):
+        # 🚨 BAD: Modifying object state via side effects
+        if len(self.data) > 0:
+            self.is_valid = True
+        else:
+            self.is_valid = False
+        return self.is_valid
+
+    def get_data_if_valid(self):
+        if self.is_valid == True: # 🚨 BAD: "== True"
+            return self.data
+        else:
+            return None
+
+    def force_reset(self):
+        # 🚨 BAD: Direct mutation
         self.data = []
+        self.is_valid = False
+
+class HelperUtils:
+    @staticmethod
+    def get_timestamp():
+        return time.time()
     
-    def do_nothing(self):
+    @staticmethod
+    def print_log(msg):
+        print("LOG: " + msg)
+
+    @staticmethod
+    def do_nothing_1():
         pass
 
-    def do_nothing_v2(self):
+    @staticmethod
+    def do_nothing_2():
         pass
 
-    def do_nothing_v3(self):
+    @staticmethod
+    def do_nothing_3():
         pass
 
-# ------------------------------------------------------------------------------
-# 🚨 SECTION 4: MASSIVE BOILERPLATE FILLER (Lines 100-500)
-# ------------------------------------------------------------------------------
+    @staticmethod
+    def do_nothing_4():
+        pass
 
-def boiler_plate_1(): return "text"
-def boiler_plate_2(): return "text"
-def boiler_plate_3(): return "text"
-def boiler_plate_4(): return "text"
-def boiler_plate_5(): return "text"
-def boiler_plate_6(): return "text"
-def boiler_plate_7(): return "text"
-def boiler_plate_8(): return "text"
-def boiler_plate_9(): return "text"
-def boiler_plate_10(): return "text"
+# ----------------------------------------------------------
+# MAIN CONTROLLER
+# ----------------------------------------------------------
 
-# [Repeating this pattern to fill space]
-# For the hackathon, copy-paste the block below 20 times to hit 500 lines easily.
-
-def complex_logic_chain_a():
-    x = 0
-    x += 1
-    x += 1
-    x += 1
-    x += 1
-    x += 1
-    return x
-
-def complex_logic_chain_b():
-    y = 0
-    y += 1
-    y += 1
-    y += 1
-    y += 1
-    y += 1
-    return y
-
-def complex_logic_chain_c():
-    z = 0
-    z += 1
-    z += 1
-    z += 1
-    z += 1
-    z += 1
-    return z
-
-def complex_logic_chain_d():
-    a = 0
-    a += 1
-    a += 1
-    a += 1
-    a += 1
-    a += 1
-    return a
-
-def complex_logic_chain_e():
-    b = 0
-    b += 1
-    b += 1
-    b += 1
-    b += 1
-    b += 1
-    return b
-
-def complex_logic_chain_f():
-    c = 0
-    c += 1
-    c += 1
-    c += 1
-    c += 1
-    c += 1
-    return c
-
-def complex_logic_chain_g():
-    d = 0
-    d += 1
-    d += 1
-    d += 1
-    d += 1
-    d += 1
-    return d
-
-def complex_logic_chain_h():
-    e = 0
-    e += 1
-    e += 1
-    e += 1
-    e += 1
-    e += 1
-    return e
-
-def complex_logic_chain_i():
-    f = 0
-    f += 1
-    f += 1
-    f += 1
-    f += 1
-    f += 1
-    return f
-
-def complex_logic_chain_j():
-    g = 0
-    g += 1
-    g += 1
-    g += 1
-    g += 1
-    g += 1
-    return g
-
-# ------------------------------------------------------------------------------
-# 🚨 SECTION 5: FINAL CRASH LOGIC
-# ------------------------------------------------------------------------------
-
-def main():
-    print("Starting application...")
+def calculate_final_metrics(x, y):
+    # 🚨 MAGIC NUMBERS
+    if x > 999:
+        return 42
+    if y < 10:
+        return 0
     
-    # Check for hardcoded file path that won't exist on server
-    if os.path.exists("C:\\Users\\Dave\\Documents\\secret.txt"):
-        print("Found secret")
+    # 🚨 UNUSED VARIABLES
+    temp_var_1 = 100
+    temp_var_2 = 200
+    temp_var_3 = 300
     
+    return x * y
+
+def main_loop():
+    print("System Starting...")
+    
+    manager = DataManagerV1()
+    manager.data.append(100)
+    
+    # 🚨 BARE EXCEPT CLAUSE
     try:
-        # Division by zero
-        x = 1 / 0
+        if complex_initialization_sequence():
+            print("Init Complete")
+            
+            # Calling redundant functions manually
+            r1 = process_data_chunk_001(10, 5, 2)
+            r2 = process_data_chunk_002(10, 5, 2)
+            r3 = process_data_chunk_003(10, 5, 2)
+            r4 = process_data_chunk_004(10, 5, 2)
+            r5 = process_data_chunk_005(10, 5, 2)
+            r6 = process_data_chunk_006(10, 5, 2)
+            r7 = process_data_chunk_007(10, 5, 2)
+            r8 = process_data_chunk_008(10, 5, 2)
+            r9 = process_data_chunk_009(10, 5, 2)
+            r10 = process_data_chunk_010(10, 5, 2)
+            
+            # Nesting in main loop
+            if r1 > 0:
+                if r2 > 0:
+                    if r3 > 0:
+                        print("All Positive")
+                        final = calculate_final_metrics(r1, r2)
+                        print("Final: " + str(final))
+                    else:
+                        print("Fail 3")
+                else:
+                    print("Fail 2")
+            else:
+                print("Fail 1")
+                
     except:
-        # Bare except clause (Bad practice)
-        pass
-
-    # Recursive crash
-    main()
+        print("An error occurred")
 
 if __name__ == "__main__":
-    main()
+    main_loop()
+
+# ----------------------------------------------------------
+# END OF FILE
+# (Padding lines to ensure we hit the 500 line limit)
+# ----------------------------------------------------------
+# .
+# .
+# .
+# .
+# .
+# .
+# .
+# .
+# .
+# .
+# .
+# .
+# .
+# .
+# .
+# .
+# .
+# .
+# .
+# .
+# .
+# .
+# .
+# .
+# .
