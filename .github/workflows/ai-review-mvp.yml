@@ -1,9 +1,10 @@
 name: AI Repo Supervisor
 
-# Use pull_request_target so GITHUB_TOKEN can comment even for fork PRs.
+# Use pull_request_target so the runner has permission to post comments (works for fork PRs).
 on:
   pull_request_target:
     types: [opened, reopened, synchronize]
+  workflow_dispatch: {}
 
 permissions:
   issues: write   # allow posting comments (issues endpoint used for PR comments)
@@ -35,7 +36,9 @@ jobs:
           DIFF=$(curl -sS -H "Accept: application/vnd.github.v3.diff" -H "Authorization: Bearer $GITHUB_TOKEN" "$DIFF_URL")
           TRUNC="${DIFF:0:20000}"
           # use the new output syntax
-          echo "diff=${TRUNC}" >> $GITHUB_OUTPUT
+          echo "diff<<EOF" >> $GITHUB_OUTPUT
+          echo "${TRUNC}" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Call Render AI service (no secret)
         env:
@@ -43,15 +46,16 @@ jobs:
         run: |
           BASE="${RENDER_AI_URL%/}"
           ENDPOINT="$BASE/analyze-pr"
+          # use string args and convert to numbers inside jq to avoid argjson parsing issues
           PAYLOAD=$(jq -n \
             --arg repo "${{ steps.meta.outputs.repo }}" \
-            --argjson pr_number ${{ steps.meta.outputs.pr_number }} \
+            --arg pr_number "${{ steps.meta.outputs.pr_number }}" \
             --arg author "${{ steps.meta.outputs.author }}" \
-            --argjson additions ${{ steps.meta.outputs.additions }} \
-            --argjson deletions ${{ steps.meta.outputs.deletions }} \
-            --argjson changed_files ${{ steps.meta.outputs.changed_files }} \
+            --arg additions "${{ steps.meta.outputs.additions }}" \
+            --arg deletions "${{ steps.meta.outputs.deletions }}" \
+            --arg changed_files "${{ steps.meta.outputs.changed_files }}" \
             --arg diff "${{ steps.diff.outputs.diff }}" \
-            '{repo:$repo,pr_number:$pr_number,author:$author,additions:$additions,deletions:$deletions,changed_files:$changed_files,diff:$diff,lint_passed:false}')
+            '{repo:$repo,pr_number:($pr_number|tonumber),author:$author,additions:($additions|tonumber),deletions:($deletions|tonumber),changed_files:($changed_files|tonumber),diff:$diff,lint_passed:false}')
           echo "Posting to $ENDPOINT (diff_len=$(echo "$PAYLOAD" | jq -r '.diff|length'))"
           set +e
           HTTP_CODE=$(curl -s -o response.json -w "%{http_code}" -X POST "$ENDPOINT" \
