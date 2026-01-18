@@ -1,4 +1,4 @@
-PRISM – Pull Request Insight & Supervision Machine
+# PRISM – Pull Request Insight & Supervision Machine
 
 PRISM is a human-in-the-loop AI system that helps engineering teams understand pull requests, track repository health over time, and make safer decisions during fast development.
 
@@ -7,7 +7,7 @@ PRISM analyzes, explains, and advises — humans stay in control.
 
 ⸻
 
-Inspiration
+## Inspiration
 
 Modern teams move fast. Code review tools haven’t kept up.
 
@@ -26,7 +26,7 @@ PRISM was built to fill that gap.
 
 ⸻
 
-What it does
+## What it does
 
 PRISM provides repo-level supervision, not just PR checks.
 
@@ -75,7 +75,7 @@ It advises. Humans decide.
 
 ⸻
 
-How we built it
+## How we built it
 
 Backend
 	•	Python + FastAPI – API layer
@@ -108,7 +108,7 @@ Architecture Philosophy
 
 ⸻
 
-Challenges we ran into
+## Challenges we ran into
 	•	Designing a health score that is intuitive, directional, and explainable
 	•	Avoiding noisy or repetitive AI output
 	•	Mapping semantic risk into something engineers trust
@@ -117,7 +117,7 @@ Challenges we ran into
 
 ⸻
 
-Accomplishments we’re proud of
+## Accomplishments we’re proud of
 	•	Built a repo-level supervision model, not just a PR checker
 	•	Combined heuristics + LLM reasoning coherently
 	•	Created an opinionated but non-blocking developer experience
@@ -126,7 +126,7 @@ Accomplishments we’re proud of
 
 ⸻
 
-What we learned
+## What we learned
 	•	AI is most effective when it augments judgment, not replaces it
 	•	Context over time matters more than single-PR correctness
 	•	Explainability builds trust faster than automation
@@ -134,7 +134,7 @@ What we learned
 
 ⸻
 
-What’s next for PRISM
+## What’s next for PRISM
 
 Planned extensions:
 	•	GitHub App + GitHub Actions integration
@@ -147,7 +147,7 @@ PRISM aims to become a copilot for code review decisions, not a gatekeeper.
 
 ⸻
 
-Built with
+## Built with
 	•	Python
 	•	FastAPI
 	•	MongoDB
