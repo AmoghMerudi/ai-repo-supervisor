@@ -1,0 +1,90 @@
+PRISM Frontend/Backend File Report
+==================================
+
+Generated: 2026-01-19T19:56:11.168919Z
+Scope: backend/ and frontend/ within the PRISM workspace
+Excluded directories: .venv/, venv/, __pycache__/, node_modules/, .next/
+
+Backend
+-------
+backend/.gitkeep — Placeholder to keep the backend directory in git.
+backend/main.py — FastAPI aggregator that mounts api, ai, and db services under /api, /ai, /db.
+backend/backend-ai/.gitkeep — Placeholder to keep the backend-ai directory in git.
+backend/backend-ai/app/ai/openrouter.py — Initializes OpenRouter OpenAI client with API key and
+headers.
+backend/backend-ai/health.db — SQLite database file for repo health records (generated at runtime).
+backend/backend-ai/package.json — Node package manifest for the GitHub Action wrapper and scripts.
+backend/backend-ai/package-lock.json — NPM lockfile for backend-ai Node dependencies.
+backend/backend-ai/requirements.txt — Python dependencies for the FastAPI AI service.
+backend/backend-ai/src/health.db — SQLite database file used by the AI service (generated at
+runtime).
+backend/backend-ai/src/index.js — GitHub Action entrypoint: loads PR data, lints diff, calls
+backend, posts comment.
+backend/backend-ai/src/main.py — FastAPI AI analyzer; calls OpenRouter or falls back to
+deterministic checks; stores health.
+backend/backend-ai/src/test_ai.py — Small script to invoke run_ai_analysis with a sample PR payload.
+backend/backend-ai/test/test.py — Placeholder test file with a trivial conditional and print.
+backend/backend-api/.gitkeep — Placeholder to keep the backend-api directory in git.
+backend/backend-api/CONTRACT.md — API contract for POST /analyze-pr request/response shape.
+backend/backend-api/health.db — SQLite database file for repo health records (generated at runtime).
+backend/backend-api/package.json — Node package manifest; starts Node wrapper and preinstalls Python
+deps.
+backend/backend-api/package-lock.json — NPM lockfile for backend-api Node dependencies.
+backend/backend-api/requirements.txt — Python dependencies for the FastAPI API service.
+backend/backend-api/runtime.txt — Python runtime pin for deployment.
+backend/backend-api/src/__init__.py — Empty package marker for Python imports.
+backend/backend-api/src/ai/__init__.py — Empty package marker for AI analyzer module.
+backend/backend-api/src/ai/analyze_pull_request.py — Deterministic analyzer that derives signals,
+risks, and scores from PR metadata/diff.
+backend/backend-api/src/index.js — GitHub Action wrapper; starts FastAPI locally or posts analysis
+to backend and comments on PRs.
+backend/backend-api/src/main.py — FastAPI API service; calls analyzer, supports demo mode, stores
+health metrics.
+backend/backend-api/test/test.py — Placeholder test file that prints a message.
+backend/backend-db/.gitkeep — Placeholder to keep the backend-db directory in git.
+backend/backend-db/health.db — SQLite database file (unused when Mongo is configured; generated at
+runtime).
+backend/backend-db/package.json — Node package manifest for the GitHub Action wrapper and scripts.
+backend/backend-db/package-lock.json — NPM lockfile for backend-db Node dependencies.
+backend/backend-db/requirements.txt — Python dependencies for the FastAPI DB service (includes
+pymongo).
+backend/backend-db/runtime.txt — Python runtime pin for deployment.
+backend/backend-db/src/index.js — GitHub Action wrapper; starts FastAPI locally or posts analysis to
+backend and comments on PRs.
+backend/backend-db/src/main.py — FastAPI DB service; stores PR health in MongoDB or in-memory
+fallback; summary endpoints.
+backend/backend-db/test/test.py — Placeholder test file printing repeated lines.
+
+Frontend
+--------
+frontend/package-lock.json — Top-level NPM lockfile for the frontend folder (empty package set).
+frontend/ai-repo-supervisor/.gitignore — Git ignore rules for the Next.js app and common artifacts.
+frontend/ai-repo-supervisor/README.md — Default Next.js README with dev/start instructions.
+frontend/ai-repo-supervisor/app/favicon.ico — Favicon asset for the Next.js app.
+frontend/ai-repo-supervisor/app/globals.css — Global Tailwind import and base theme styles.
+frontend/ai-repo-supervisor/app/layout.tsx — Root layout that loads fonts and defines site metadata.
+frontend/ai-repo-supervisor/app/page.tsx — Landing page with hero copy and CTA to the dashboard.
+frontend/ai-repo-supervisor/app/libs/mockRepos.tsx — Mock repository dataset used by the dashboard
+and repo pages.
+frontend/ai-repo-supervisor/app/dashboard/page.tsx — Dashboard listing cards for mock repos with
+status and scores.
+frontend/ai-repo-supervisor/app/dashboard/[repo]/page.tsx — Repo detail page with health chart and
+recent PR cards.
+frontend/ai-repo-supervisor/public/file.svg — Static SVG asset used by the UI or template.
+frontend/ai-repo-supervisor/public/globe.svg — Static SVG asset used by the UI or template.
+frontend/ai-repo-supervisor/public/next.svg — Next.js logo asset from the starter template.
+frontend/ai-repo-supervisor/public/vercel.svg — Vercel logo asset from the starter template.
+frontend/ai-repo-supervisor/public/window.svg — Static SVG asset used by the UI or template.
+frontend/ai-repo-supervisor/src/adapters/prAdapter.ts — Types + adapter to label risk/health and
+normalize backend responses for UI.
+frontend/ai-repo-supervisor/src/components/RecentPullRequestCard.tsx — Expandable PR card component
+showing summary, risks, and actions.
+frontend/ai-repo-supervisor/src/mocks/sampleAnalyzeResponse.ts — Baseline mock backend response used
+by mock repo data.
+frontend/ai-repo-supervisor/eslint.config.mjs — ESLint config using Next.js core-web-vitals and
+TypeScript presets.
+frontend/ai-repo-supervisor/next.config.ts — Next.js configuration placeholder.
+frontend/ai-repo-supervisor/package.json — Next.js app manifest with scripts and dependencies.
+frontend/ai-repo-supervisor/package-lock.json — NPM lockfile for the Next.js app dependencies.
+frontend/ai-repo-supervisor/postcss.config.mjs — PostCSS config enabling Tailwind v4 plugin.
+frontend/ai-repo-supervisor/tsconfig.json — TypeScript config for the Next.js app.

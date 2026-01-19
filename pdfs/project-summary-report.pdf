@@ -1,0 +1,173 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R 5 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 6 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 2755 >>
+stream
+BT
+/F1 11 Tf
+72 709 Td
+(PRISM Project Summary) Tj
+0 -14 Td
+(=====================) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Generated: 2026-01-19T20:09:49.289933+00:00Z) Tj
+0 -14 Td
+(Location: /Users/amoghmerudi/PRISM) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(What This Project Is) Tj
+0 -14 Td
+(--------------------) Tj
+0 -14 Td
+(- AI Repo Supervisor \(PRISM\) with a Next.js frontend and FastAPI-based backend services.) Tj
+0 -14 Td
+(- Backend is split into API, AI analysis, and DB services, mounted together by a root FastAPI app.) Tj
+0 -14 Td
+(- Includes GitHub Action-style Node wrappers to run or call the backend and post PR comments.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Architecture Overview) Tj
+0 -14 Td
+(---------------------) Tj
+0 -14 Td
+(- Frontend: Next.js app in `frontend/ai-repo-supervisor` with Tailwind styling and mock data.) Tj
+0 -14 Td
+(- Backend aggregator: `backend/main.py` mounts `/api`, `/ai`, `/db` services.) Tj
+0 -14 Td
+(- Backend API service: deterministic PR analysis and demo-mode response shaping.) Tj
+0 -14 Td
+(- Backend AI service: OpenRouter-based analysis with fallback heuristics; writes SQLite health data.) Tj
+0 -14 Td
+(- Backend DB service: MongoDB-backed PR health history + summary endpoints, in-memory fallback.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Key User Flows) Tj
+0 -14 Td
+(--------------) Tj
+0 -14 Td
+(- User visits landing page and navigates to dashboard for repo health cards.) Tj
+0 -14 Td
+(- Repo detail page shows health trend chart and recent PR analysis cards \(mocked data\).) Tj
+0 -14 Td
+(- GitHub Action wrapper collects PR data, lints diff, sends to backend, and posts PR comments.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Backend Endpoints \(High-Level\)) Tj
+0 -14 Td
+(------------------------------) Tj
+0 -14 Td
+(- /analyze-pr: accepts PR metadata and diff, returns summary/risks/suggestions/health scores.) Tj
+0 -14 Td
+(- /health: service status endpoint for API/AI/DB services.) Tj
+0 -14 Td
+(- /health-history: recent health history for a repo.) Tj
+0 -14 Td
+(- /repo-summary and /repos \(DB service\): summary and listing for repo health metrics.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Data Storage) Tj
+0 -14 Td
+(------------) Tj
+0 -14 Td
+(- SQLite: health.db files in backend-ai and backend-api for demo/local storage.) Tj
+0 -14 Td
+(- MongoDB: backend-db uses MongoDB Atlas when `MONGODB_URI` is set; otherwise in-memory.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Tech Stack) Tj
+0 -14 Td
+(----------) Tj
+0 -14 Td
+(- Frontend: Next.js 16, React 19, TypeScript, Tailwind CSS \(PostCSS v4 plugin\).) Tj
+0 -14 Td
+(- Backend: FastAPI, Uvicorn/Gunicorn, Pydantic; OpenAI client for OpenRouter.) Tj
+0 -14 Td
+(- Node: GitHub Actions tooling via @actions/core/github, plus fetch to backend.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Project Structure) Tj
+0 -14 Td
+(-----------------) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 6 0 R /Resources << /Font << /F1 6 0 R >> >> >>
+endobj
+6 0 obj
+<< /Length 1173 >>
+stream
+BT
+/F1 11 Tf
+72 709 Td
+(- `frontend/ai-repo-supervisor`: Next.js app \(pages under `app/`\).) Tj
+0 -14 Td
+(- `backend/backend-api`: FastAPI service for PR analysis; includes analyzer module.) Tj
+0 -14 Td
+(- `backend/backend-ai`: FastAPI service for AI analysis via OpenRouter.) Tj
+0 -14 Td
+(- `backend/backend-db`: FastAPI service for persisting and summarizing repo health.) Tj
+0 -14 Td
+(- `backend/main.py`: mounts all backend services into a single app.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Operational Notes) Tj
+0 -14 Td
+(-----------------) Tj
+0 -14 Td
+(- Environment variables: OPENROUTER_API_KEY, OPENROUTER_MODEL, USE_AI, DEMO_MODE, MONGODB_URI.) Tj
+0 -14 Td
+(- GitHub Action wrappers can run locally \(start FastAPI\) or in CI \(post PR comments\).) Tj
+0 -14 Td
+(- Multiple health.db files appear to be runtime artifacts, not core source.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Suggested Next Steps) Tj
+0 -14 Td
+(--------------------) Tj
+0 -14 Td
+(- Add real API integration to replace mock repo data in the frontend.) Tj
+0 -14 Td
+(- Unify backend responses between API/AI/DB services to avoid format drift.) Tj
+0 -14 Td
+(- Add automated tests for analyzers and API endpoints.) Tj
+ET
+endstream
+endobj
+7 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000121 00000 n 
+0000000247 00000 n 
+0000003054 00000 n 
+0000003180 00000 n 
+0000004405 00000 n 
+trailer
+<< /Size 8 /Root 1 0 R >>
+startxref
+4475
+%%EOF
