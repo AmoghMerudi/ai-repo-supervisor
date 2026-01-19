@@ -1,5 +1,6 @@
 const core = require('@actions/core');
 const github = require('@actions/github');
+const { spawn } = require('child_process');
 
 const BACKEND_URL =
   process.env.BACKEND_URL ||
@@ -22,6 +23,29 @@ function runBasicLint(diffText) {
 async function run() {
   try {
     const SIMULATE = process.env.SIMULATE === '1';
+    const isGitHubAction = process.env.GITHUB_ACTIONS === 'true';
+
+    const startPythonApi = () => {
+      const port = process.env.PORT || '8000';
+      console.log('Starting FastAPI backend on port', port);
+      const child = spawn(
+        'python3',
+        [
+          '-m',
+          'uvicorn',
+          'src.main:app',
+          '--host',
+          '0.0.0.0',
+          '--port',
+          port,
+        ],
+        { stdio: 'inherit' }
+      );
+
+      child.on('exit', code => {
+        process.exit(code ?? 0);
+      });
+    };
 
     let owner;
     let repo;
@@ -33,6 +57,11 @@ async function run() {
     // ---------------------------------------------------------
     // 1. LOAD PR DATA
     // ---------------------------------------------------------
+    if (!isGitHubAction && !SIMULATE) {
+      startPythonApi();
+      return;
+    }
+
     if (SIMULATE) {
       owner = process.env.SIM_OWNER || 'demo-owner';
       repo = process.env.SIM_REPO || 'demo-repo';
